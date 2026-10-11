@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      captures: {
+        Row: {
+          captured_at: string | null
+          content_hash: string | null
+          created_at: string
+          error: string | null
+          external_id: string | null
+          id: string
+          kind: string
+          mime: string | null
+          note: string | null
+          owner_id: string
+          project_id: string | null
+          received_at: string
+          size_bytes: number | null
+          source: Database["public"]["Enums"]["source_kind"]
+          source_message_id: string | null
+          status: string
+          storage_path: string | null
+          title: string | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility"]
+        }
+        Insert: {
+          captured_at?: string | null
+          content_hash?: string | null
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          kind: string
+          mime?: string | null
+          note?: string | null
+          owner_id?: string
+          project_id?: string | null
+          received_at?: string
+          size_bytes?: number | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_message_id?: string | null
+          status?: string
+          storage_path?: string | null
+          title?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Update: {
+          captured_at?: string | null
+          content_hash?: string | null
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          kind?: string
+          mime?: string | null
+          note?: string | null
+          owner_id?: string
+          project_id?: string | null
+          received_at?: string
+          size_bytes?: number | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_message_id?: string | null
+          status?: string
+          storage_path?: string | null
+          title?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "captures_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "captures_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "sid_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_methods: {
         Row: {
           created_at: string
@@ -48,6 +132,158 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facts: {
+        Row: {
+          author_id: string
+          confidence: number | null
+          created_at: string
+          id: string
+          is_inference: boolean
+          kind: string
+          person_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: Database["public"]["Enums"]["source_kind"]
+          source_capture_id: string | null
+          source_message_id: string | null
+          status: Database["public"]["Enums"]["review_status"]
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_inference?: boolean
+          kind: string
+          person_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_capture_id?: string | null
+          source_message_id?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_inference?: boolean
+          kind?: string
+          person_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_capture_id?: string | null
+          source_message_id?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facts_source_capture_id_fkey"
+            columns: ["source_capture_id"]
+            isOneToOne: false
+            referencedRelation: "captures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facts_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "sid_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interactions: {
+        Row: {
+          author_id: string
+          confidence: number | null
+          created_at: string
+          id: string
+          kind: string | null
+          occurred_at: string | null
+          person_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: Database["public"]["Enums"]["source_kind"]
+          source_capture_id: string | null
+          source_message_id: string | null
+          status: Database["public"]["Enums"]["review_status"]
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          occurred_at?: string | null
+          person_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_capture_id?: string | null
+          source_message_id?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          occurred_at?: string | null
+          person_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_capture_id?: string | null
+          source_message_id?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interactions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_source_capture_id_fkey"
+            columns: ["source_capture_id"]
+            isOneToOne: false
+            referencedRelation: "captures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "sid_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -220,6 +456,47 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_jobs: {
+        Row: {
+          attempts: number
+          capture_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          status: string
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          capture_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          status?: string
+          step: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          capture_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          status?: string
+          step?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_jobs_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "captures"
             referencedColumns: ["id"]
           },
         ]
@@ -421,6 +698,50 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "sid_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcripts: {
+        Row: {
+          capture_id: string
+          created_at: string
+          id: string
+          language: string | null
+          provider: string | null
+          segments: Json | null
+          status: Database["public"]["Enums"]["review_status"]
+          text: string | null
+          updated_at: string
+        }
+        Insert: {
+          capture_id: string
+          created_at?: string
+          id?: string
+          language?: string | null
+          provider?: string | null
+          segments?: Json | null
+          status?: Database["public"]["Enums"]["review_status"]
+          text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capture_id?: string
+          created_at?: string
+          id?: string
+          language?: string | null
+          provider?: string | null
+          segments?: Json | null
+          status?: Database["public"]["Enums"]["review_status"]
+          text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcripts_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "captures"
             referencedColumns: ["id"]
           },
         ]

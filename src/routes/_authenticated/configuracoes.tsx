@@ -57,10 +57,7 @@ function ProfileTab() {
   if (me.isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (!me.data) return <p className="text-sm text-destructive">Sessão expirada. Entre novamente.</p>;
 
-  const currentName =
-    (me.data as { name?: string }).name ??
-    "";
-  const displayName = name ?? currentName;
+  const displayName = name ?? me.data.name;
 
   async function saveName() {
     setSaving(true);

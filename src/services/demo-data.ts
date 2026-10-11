@@ -1,0 +1,87 @@
+// DADOS FICTÍCIOS — apenas para demonstração da interface. Nenhuma pessoa real.
+import type { CalendarEvent, Opportunity, Person, Project, Task } from "@/types/domain";
+
+export const DEMO_PEOPLE: Person[] = [
+  {
+    id: "p1", name: "Marcelo Exemplo", aliases: ["Marcelão"], city: "Curitiba", company: "Construtora Fictícia",
+    role: "Diretor de obras", sphere: "Negócios", proximity: "amigo_proximo", priority: "alta",
+    phones: ["+55 41 90000-0001"], emails: ["marcelo@exemplo.test"],
+    needs: ["Fornecedor de esquadrias com prazo curto"], skills: ["Gestão de obras", "Rede de engenheiros"],
+    connections: ["p2", "p4"],
+    history: [
+      { date: "08/10/2026", type: "reuniao", text: "Café: comentou dificuldade com fornecedor atual.", source: "Nota digitada (exemplo)" },
+      { date: "21/09/2026", type: "ligacao", text: "Ligação sobre a obra do bairro Água Verde.", source: "Importação manual (exemplo)" },
+    ],
+    followups: [{ id: "f1", date: "09/10/2026", reason: "Enviar contato de fornecedor", overdue: true }],
+    lastInteraction: "08/10/2026", completeness: 80, visibility: "equipe",
+  },
+  {
+    id: "p2", name: "Ana Ficcional", aliases: [], city: "São Paulo", company: "Instituto Horizonte (fictício)",
+    role: "Coordenadora de projetos", sphere: "Terceiro setor", proximity: "amigo_intimo", priority: "media",
+    phones: ["+55 11 90000-0002"], emails: ["ana@exemplo.test"],
+    needs: ["Voluntários para mentoria"], skills: ["Captação de recursos", "Eventos"],
+    connections: ["p1", "p3"],
+    history: [{ date: "02/10/2026", type: "mensagem", text: "Pediu indicação de mentores.", source: "Nota digitada (exemplo)" }],
+    followups: [{ id: "f2", date: "14/10/2026", reason: "Retornar sobre mentores" }],
+    lastInteraction: "02/10/2026", completeness: 65, visibility: "equipe",
+  },
+  {
+    id: "p3", name: "Paulo Demonstração", aliases: ["PD"], city: "Belo Horizonte", company: "Agro Exemplo Ltda.",
+    role: "Sócio", sphere: "Agronegócio", proximity: "discipulo", priority: "alta",
+    phones: [], emails: ["paulo@exemplo.test"],
+    needs: ["Crédito para expansão", "Contador especializado"], skills: ["Logística rural"],
+    connections: ["p2"],
+    history: [{ date: "15/09/2026", type: "reuniao", text: "Apresentou plano de expansão.", source: "Captura de áudio (exemplo)" }],
+    followups: [{ id: "f3", date: "05/10/2026", reason: "Apresentar contador", overdue: true }],
+    lastInteraction: "15/09/2026", completeness: 50, visibility: "privado",
+  },
+  {
+    id: "p4", name: "Juliana Modelo", aliases: [], city: "Curitiba", company: "Studio Fictício",
+    role: "Designer", sphere: "Criativo", proximity: "seguidor", priority: "baixa",
+    phones: ["+55 41 90000-0004"], emails: [],
+    needs: [], skills: ["Identidade visual", "Vídeo"],
+    connections: ["p1"], history: [], followups: [],
+    lastInteraction: "—", completeness: 35, visibility: "equipe",
+  },
+  {
+    id: "p5", name: "Roberto Amostra", aliases: [], city: "Florianópolis", company: "—",
+    role: "Investidor anjo", sphere: "Negócios", proximity: "multidao", priority: "media",
+    phones: [], emails: ["roberto@exemplo.test"], needs: ["Deal flow qualificado"], skills: ["Capital", "Mentoria"],
+    connections: [], history: [], followups: [],
+    lastInteraction: "—", completeness: 25, visibility: "equipe",
+  },
+];
+
+export const DEMO_TASKS: Task[] = [
+  { id: "t1", title: "Enviar contato de fornecedor ao Marcelo", status: "a_fazer", priority: "alta", due: "09/10", late: true, owner: "Você", personId: "p1" },
+  { id: "t2", title: "Montar lista de mentores para Ana", status: "fazendo", priority: "media", due: "14/10", owner: "Equipe", personId: "p2" },
+  { id: "t3", title: "Apresentar contador ao Paulo", status: "aguardando", priority: "alta", due: "05/10", late: true, owner: "Você", personId: "p3" },
+  { id: "t4", title: "Revisar importação de contatos", status: "a_fazer", priority: "baixa", due: "18/10", owner: "Equipe" },
+  { id: "t5", title: "Agradecer Juliana pelo portfólio", status: "feito", priority: "baixa", due: "01/10", owner: "Você", personId: "p4" },
+];
+
+export const DEMO_OPPORTUNITIES: Opportunity[] = [
+  {
+    id: "o1", title: "Fornecedor de esquadrias para Marcelo", need: "Prazo curto para obra", resources: "Contatos de engenharia",
+    thirdParty: "Fornecedor indicado por Juliana (hipótese)", personIds: ["p1", "p4"],
+    scores: { retorno: 4, urgencia: 5, esforco: 2, complexidade: 2, custo_oportunidade: 2, capacidade: 2, conectar: 5 }, status: "em_decisao",
+  },
+  {
+    id: "o2", title: "Mentores para o Instituto", need: "Voluntários qualificados", resources: "Rede de executivos",
+    thirdParty: "Roberto (mentoria)", personIds: ["p2", "p5"],
+    scores: { retorno: 3, urgencia: 2, esforco: 3, complexidade: 2, custo_oportunidade: 2, capacidade: 4, conectar: 4 }, status: "aberta",
+  },
+];
+
+export const DEMO_EVENTS: CalendarEvent[] = [
+  { id: "e1", day: 0, start: 9, duration: 1, title: "Café com Marcelo (exemplo)", kind: "reuniao" },
+  { id: "e2", day: 1, start: 14, duration: 2, title: "Reunião Instituto (exemplo)", kind: "reuniao" },
+  { id: "e3", day: 2, start: 10, duration: 1, title: "Follow-up Paulo", kind: "followup" },
+  { id: "e4", day: 3, start: 16, duration: 1, title: "Prazo: lista de mentores", kind: "prazo" },
+  { id: "e5", day: 4, start: 11, duration: 1, title: "Revisão semanal", kind: "reuniao" },
+];
+
+export const DEMO_PROJECTS: Project[] = [
+  { id: "pr1", name: "Rede de mentores (exemplo)", goal: "Conectar 10 mentores ao Instituto", status: "ativo", progress: 30, owner: "Equipe" },
+  { id: "pr2", name: "Base inicial de contatos", goal: "Importar e deduplicar contatos autorizados", status: "pausado", progress: 0, owner: "Você", risk: "Aguarda backend Supabase" },
+];

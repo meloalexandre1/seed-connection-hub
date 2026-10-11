@@ -36,7 +36,7 @@ export const meService = {
       id: data.user.id,
       email: data.user.email ?? "",
       role: roles?.[0]?.role ?? null,
-      name: (data.user.user_metadata?.full_name as string | undefined) ?? "",
+      name: (data.user.user_metadata?.["full_name"] as string | undefined) ?? "",
     };
   },
 };

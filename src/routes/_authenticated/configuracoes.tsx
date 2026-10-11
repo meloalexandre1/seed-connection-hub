@@ -74,8 +74,14 @@ function ProfileTab() {
   }
 
   async function savePassword() {
-    if (pw.length < 8) return toast.warning("A nova senha precisa de pelo menos 8 caracteres.");
-    if (pw !== pw2) return toast.warning("As senhas não coincidem.");
+    if (pw.length < 8) {
+      toast.warning("A nova senha precisa de pelo menos 8 caracteres.");
+      return;
+    }
+    if (pw !== pw2) {
+      toast.warning("As senhas não coincidem.");
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: pw, current_password: curPw });

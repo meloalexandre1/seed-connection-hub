@@ -1,321 +1,168 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Phone, Mail, Building2, MapPin, CalendarPlus, Lock } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Panel,
-  LevelBadge,
-  PriorityBadge,
-  Avatar,
-  EmptyState,
-  DemoTag,
-} from "@/components/app/ui-bits";
-import { peopleService } from "@/services";
-import type { Followup } from "@/types/domain";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Panel, LevelBadge, PriorityBadge, Avatar, EmptyState } from "@/components/app/ui-bits";
+import { PersonFormDialog } from "@/components/app/PersonFormDialog";
+import { livePeople, liveInteractions, fmtDate } from "@/services/live";
+import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/pessoas/$id")({
-  loader: ({ params }) => {
-    const person = peopleService.get(params.id);
-    if (!person) throw notFound();
-    return { person };
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: loaderData ? `${loaderData.person.name} · Seed Connection` : "Pessoa não encontrada",
-      },
-      {
-        name: "description",
-        content: "Perfil relacional com contatos, necessidades, habilidades e histórico.",
-      },
-      { property: "og:title", content: "Perfil de pessoa · Seed Connection" },
-      { property: "og:description", content: "Perfil relacional privado." },
-      { property: "og:type", content: "profile" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
-  notFoundComponent: () => (
-    <EmptyState
-      title="Pessoa não encontrada"
-      text="Este registro não existe no modo demonstração."
-      action={
-        <Button asChild>
-          <Link to="/pessoas">Voltar</Link>
-        </Button>
-      }
-    />
-  ),
+  head: () => pageHead("Perfil", "Perfil completo de relacionamento."),
   component: PersonPage,
 });
 
+const KINDS: Record<string, string> = { reuniao: "Reunião", ligacao: "Ligação", mensagem: "Mensagem", nota: "Nota" };
+
 function PersonPage() {
-  const { person: p } = Route.useLoaderData();
-  const [fups, setFups] = useState<Followup[]>(p.followups);
-  const [reason, setReason] = useState("");
-  const [date, setDate] = useState("");
-  const conns = p.connections.map((id) => peopleService.get(id)).filter(Boolean);
+  const { id } = Route.useParams();
+  const qc = useQueryClient();
+  const [edit, setEdit] = useState(false);
+  const person = useQuery({ queryKey: ["person", id], queryFn: () => livePeople.get(id) });
+  const contacts = useQuery({ queryKey: ["contacts", id], queryFn: () => livePeople.contacts(id), enabled: !!person.data });
+  const inter = useQuery({ queryKey: ["interactions", id], queryFn: () => liveInteractions.listByPerson(id), enabled: !!person.data });
+
+  const update = useMutation({
+    mutationFn: (v: Parameters<typeof livePeople.update>[1]) => livePeople.update(id, v),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["person", id] });
+      qc.invalidateQueries({ queryKey: ["people"] });
+      toast.success("Alterações salvas.");
+      setEdit(false);
+    },
+    onError: (e) => toast.error(`Não foi possível salvar: ${e.message}`),
+  });
+
+  const [ck, setCk] = useState("whatsapp");
+  const [cv, setCv] = useState("");
+  const addContact = useMutation({
+    mutationFn: () => livePeople.addContact(id, ck, cv),
+    onSuccess: () => { setCv(""); qc.invalidateQueries({ queryKey: ["contacts", id] }); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const [ik, setIk] = useState("reuniao");
+  const [it, setIt] = useState("");
+  const [idate, setIdate] = useState(() => new Date().toISOString().slice(0, 10));
+  const addInter = useMutation({
+    mutationFn: () => liveInteractions.create({ person_id: id, kind: ik, summary: it.trim(), occurred_at: new Date(idate).toISOString() }),
+    onSuccess: () => {
+      setIt("");
+      qc.invalidateQueries({ queryKey: ["interactions", id] });
+      qc.invalidateQueries({ queryKey: ["person", id] });
+      toast.success("Interação registrada.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (person.isLoading) return <p className="p-6 text-center text-sm text-muted-foreground">Carregando…</p>;
+  if (person.isError || !person.data)
+    return (
+      <EmptyState
+        title="Pessoa não encontrada"
+        text="Ela pode ter sido removida ou você não tem acesso."
+        action={<Button asChild variant="secondary"><Link to="/pessoas">Voltar para Pessoas</Link></Button>}
+      />
+    );
+  const p = person.data;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <Link
-        to="/pessoas"
-        className="inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Pessoas
+      <Link to="/pessoas" className="inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-4 w-4" /> Pessoas
       </Link>
-      <div className="flex flex-col gap-4 rounded-2xl border bg-card bg-glow p-5 sm:flex-row sm:items-center">
-        <Avatar name={p.name} className="h-16 w-16 text-lg" />
+      <div className="flex flex-wrap items-start gap-4">
+        <Avatar name={p.name} className="h-14 w-14 text-lg" />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold">{p.name}</h1>
-            <DemoTag />
-          </div>
+          <h1 className="text-2xl font-semibold">{p.name}</h1>
           <p className="text-sm text-muted-foreground">
-            {p.role} · {p.company}
+            {[p.relationship_type, p.role, p.company, p.city].filter(Boolean).join(" · ") || "Sem detalhes"}
           </p>
-          {p.aliases.length > 0 && (
-            <p className="text-xs text-subtle">Também conhecido como {p.aliases.join(", ")}</p>
-          )}
-          <div className="mt-2 flex flex-wrap gap-2">
-            <span className="text-[11px] text-muted-foreground">Proximidade:</span>
+          <div className="mt-2 flex flex-wrap gap-1.5">
             <LevelBadge level={p.proximity} />
-            <span className="ml-2 text-[11px] text-muted-foreground">Estratégia:</span>
             <PriorityBadge p={p.priority} />
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Lock className="h-3 w-3" />
-              Visibilidade: {p.visibility}
-            </span>
           </div>
         </div>
+        <Button variant="secondary" className="h-11" onClick={() => setEdit(true)}>
+          <Pencil className="h-4 w-4" /> Editar
+        </Button>
       </div>
 
-      <Tabs defaultValue="geral">
-        <TabsList className="h-auto w-full justify-start overflow-x-auto">
-          {(
-            [
-              ["geral", "Visão geral"],
-              ["necessidades", "Dores e recursos"],
-              ["conexoes", "Conexões"],
-              ["historico", "Histórico"],
-              ["followups", "Follow-ups"],
-            ] as const
-          ).map(([v, l]) => (
-            <TabsTrigger key={v} value={v} className="min-h-10">
-              {l}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Panel title="Contexto">
+          <p className="whitespace-pre-wrap text-sm">{p.context || "—"}</p>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <dt className="text-muted-foreground">Próxima ação</dt><dd>{p.next_action || "—"}</dd>
+            <dt className="text-muted-foreground">Última interação</dt><dd>{fmtDate(p.last_interaction_at)}</dd>
+          </dl>
+        </Panel>
+        <Panel title="Contatos">
+          <ul className="space-y-1 text-sm">
+            {(contacts.data ?? []).map((c) => (
+              <li key={c.id}><span className="text-muted-foreground">{c.kind}:</span> {c.value_raw}</li>
+            ))}
+            {contacts.data?.length === 0 && <li className="text-muted-foreground">Nenhum contato.</li>}
+          </ul>
+          <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (cv.trim()) addContact.mutate(); }}>
+            <Select value={ck} onValueChange={setCk}>
+              <SelectTrigger className="h-11 w-32" aria-label="Tipo de contato"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="telefone">Telefone</SelectItem>
+                <SelectItem value="email">E-mail</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input value={cv} onChange={(e) => setCv(e.target.value)} className="h-11" aria-label="Contato" />
+            <Button type="submit" className="h-11" aria-label="Adicionar contato" disabled={addContact.isPending}><Plus className="h-4 w-4" /></Button>
+          </form>
+        </Panel>
+        <Panel title="Dores / necessidades">
+          <Chips items={p.needs} />
+        </Panel>
+        <Panel title="Habilidades / recursos">
+          <Chips items={p.skills} />
+        </Panel>
+      </div>
 
-        <TabsContent value="geral" className="grid gap-4 md:grid-cols-2">
-          <Panel title="Cinco pilares">
-            <dl className="divide-y divide-dashed text-sm">
-              {[
-                ["Nome", p.name],
-                ["Cidade", p.city],
-                ["Trabalho", `${p.role} · ${p.company}`],
-                ["Habilidade", p.skills[0] ?? "—"],
-                ["Dor", p.needs[0] ?? "—"],
-              ].map(([k, v]) => (
-                <div key={k} className="grid grid-cols-[96px_1fr] gap-2 py-2">
-                  <dt className="eyebrow pt-0.5">{k}</dt>
-                  <dd>{v}</dd>
-                </div>
-              ))}
-            </dl>
-          </Panel>
-          <Panel title="Contatos e empresa">
-            <ul className="space-y-2 text-sm">
-              {p.phones.map((x) => (
-                <li key={x} className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-primary" />
-                  {x}
-                </li>
-              ))}
-              {p.emails.map((x) => (
-                <li key={x} className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-primary" />
-                  {x}
-                </li>
-              ))}
-              <li className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-primary" />
-                {p.company} · esfera {p.sphere}
+      <Panel title="Histórico de interações">
+        <form className="mb-4 grid gap-2 sm:grid-cols-[140px_150px_1fr_auto]" onSubmit={(e) => { e.preventDefault(); if (it.trim()) addInter.mutate(); }}>
+          <Select value={ik} onValueChange={setIk}>
+            <SelectTrigger className="h-11" aria-label="Tipo"><SelectValue /></SelectTrigger>
+            <SelectContent>{Object.entries(KINDS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
+          </Select>
+          <Input type="date" value={idate} onChange={(e) => setIdate(e.target.value)} className="h-11" aria-label="Data" />
+          <Textarea value={it} onChange={(e) => setIt(e.target.value)} placeholder="Resumo da interação" className="min-h-11" />
+          <Button type="submit" className="h-11" disabled={addInter.isPending}>Registrar</Button>
+        </form>
+        {(inter.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma interação registrada.</p>
+        ) : (
+          <ol className="space-y-3 border-l pl-4">
+            {inter.data!.map((i) => (
+              <li key={i.id}>
+                <p className="text-xs text-muted-foreground">{fmtDate(i.occurred_at)} · {KINDS[i.kind ?? ""] ?? i.kind}</p>
+                <p className="whitespace-pre-wrap text-sm">{i.summary}</p>
               </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                {p.city}
-              </li>
-            </ul>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Completude do cadastro: {p.completeness}%
-            </p>
-          </Panel>
-        </TabsContent>
+            ))}
+          </ol>
+        )}
+      </Panel>
 
-        <TabsContent value="necessidades" className="grid gap-4 md:grid-cols-2">
-          <Panel title="Necessidades / dores">
-            {p.needs.length ? (
-              <ul className="list-disc space-y-1 pl-5 text-sm">
-                {p.needs.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma registrada.</p>
-            )}
-          </Panel>
-          <Panel title="Habilidades / recursos">
-            {p.skills.length ? (
-              <div className="flex flex-wrap gap-2">
-                {p.skills.map((s) => (
-                  <span key={s} className="rounded-full border px-3 py-1 text-xs">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma registrada.</p>
-            )}
-          </Panel>
-        </TabsContent>
+      <PersonFormDialog open={edit} onOpenChange={setEdit} initial={p} busy={update.isPending} onSubmit={(v) => update.mutate(v)} />
+    </div>
+  );
+}
 
-        <TabsContent value="conexoes">
-          <Panel title="Conexões registradas">
-            {conns.length === 0 ? (
-              <EmptyState
-                title="Sem conexões"
-                text="Coocorrência em conversas não é tratada como conexão comprovada."
-              />
-            ) : (
-              <ul className="divide-y">
-                {conns.map(
-                  (c) =>
-                    c && (
-                      <li key={c.id}>
-                        <Link
-                          to="/pessoas/$id"
-                          params={{ id: c.id }}
-                          className="flex items-center gap-3 py-3 hover:text-primary"
-                        >
-                          <Avatar name={c.name} />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{c.name}</p>
-                            <p className="text-xs text-muted-foreground">{c.company}</p>
-                          </div>
-                          <LevelBadge level={c.proximity} />
-                        </Link>
-                      </li>
-                    ),
-                )}
-              </ul>
-            )}
-          </Panel>
-        </TabsContent>
-
-        <TabsContent value="historico">
-          <Panel title="Histórico cronológico">
-            {p.history.length === 0 ? (
-              <EmptyState
-                title="Sem interações"
-                text="Capturas aprovadas aparecerão aqui com fonte e data."
-              />
-            ) : (
-              <ol className="relative space-y-4 border-l pl-5">
-                {p.history.map((h, i) => (
-                  <li key={i} className="relative">
-                    <span
-                      className="absolute -left-[26px] top-1 h-3 w-3 rounded-full bg-primary"
-                      aria-hidden
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {h.date} · {h.type}
-                    </p>
-                    <p className="text-sm">{h.text}</p>
-                    <p className="text-[11px] text-subtle">Fonte: {h.source}</p>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </Panel>
-        </TabsContent>
-
-        <TabsContent value="followups">
-          <Panel title="Próximos follow-ups">
-            <ul className="mb-4 space-y-2">
-              {fups.length === 0 && (
-                <li className="text-sm text-muted-foreground">Nenhum follow-up.</li>
-              )}
-              {fups.map((f) => (
-                <li key={f.id} className="flex items-center gap-3 rounded-xl border p-3 text-sm">
-                  <CalendarPlus
-                    className={f.overdue ? "h-4 w-4 text-destructive" : "h-4 w-4 text-primary"}
-                  />
-                  <span className="flex-1">{f.reason}</span>
-                  <span
-                    className={
-                      f.overdue
-                        ? "text-xs font-semibold text-destructive"
-                        : "text-xs text-muted-foreground"
-                    }
-                  >
-                    {f.date}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setFups((x) => x.filter((y) => y.id !== f.id));
-                      toast.warning("Demonstração: concluído só nesta tela.");
-                    }}
-                  >
-                    Concluir
-                  </Button>
-                </li>
-              ))}
-            </ul>
-            <form
-              className="flex flex-col gap-2 sm:flex-row"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!reason || !date) {
-                  toast.error("Informe motivo e data.");
-                  return;
-                }
-                setFups((x) => [
-                  ...x,
-                  { id: `f${Date.now()}`, reason, date: date.split("-").reverse().join("/") },
-                ]);
-                setReason("");
-                setDate("");
-                toast.warning("Demonstração: follow-up não foi salvo.");
-              }}
-            >
-              <Input
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Motivo do follow-up"
-                aria-label="Motivo"
-                className="h-11"
-              />
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                aria-label="Data"
-                className="h-11 sm:w-44"
-              />
-              <Button type="submit" className="h-11">
-                Adicionar
-              </Button>
-            </form>
-          </Panel>
-        </TabsContent>
-      </Tabs>
+function Chips({ items }: { items: string[] }) {
+  if (!items.length) return <p className="text-sm text-muted-foreground">—</p>;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((s) => <span key={s} className="rounded-full border px-2.5 py-1 text-xs">{s}</span>)}
     </div>
   );
 }

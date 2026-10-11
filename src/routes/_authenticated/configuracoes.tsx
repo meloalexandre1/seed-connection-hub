@@ -45,6 +45,126 @@ const ACTIONS = [
   "Criar tarefa",
 ];
 
+function ProfileTab() {
+  const qc = useQueryClient();
+  const me = useQuery({ queryKey: ["me"], queryFn: () => meService.get() });
+  const [name, setName] = useState<string | null>(null);
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [curPw, setCurPw] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  if (me.isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
+  if (!me.data) return <p className="text-sm text-destructive">Sessão expirada. Entre novamente.</p>;
+
+  const currentName =
+    (me.data as { name?: string }).name ??
+    "";
+  const displayName = name ?? currentName;
+
+  async function saveName() {
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ data: { full_name: displayName } });
+      if (error) throw error;
+      toast.success("Nome atualizado.");
+      qc.invalidateQueries({ queryKey: ["me"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function savePassword() {
+    if (pw.length < 8) return toast.warning("A nova senha precisa de pelo menos 8 caracteres.");
+    if (pw !== pw2) return toast.warning("As senhas não coincidem.");
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pw, current_password: curPw });
+      if (error) throw error;
+      toast.success("Senha alterada.");
+      setPw("");
+      setPw2("");
+      setCurPw("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível alterar a senha.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Panel title="Seu perfil">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="pn">Nome de exibição</Label>
+            <Input
+              id="pn"
+              value={displayName}
+              onChange={(e) => setName(e.target.value)}
+              className="h-11"
+              placeholder="Como você aparece para a equipe"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="pe">E-mail (login)</Label>
+            <Input id="pe" value={me.data.email} disabled className="h-11" />
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          O e-mail de login só pode ser trocado por um administrador na tela Acesso e equipe.
+        </p>
+        <Button className="mt-3" disabled={saving} onClick={saveName}>
+          Salvar perfil
+        </Button>
+      </Panel>
+
+      <Panel title="Alterar senha">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="cpw">Senha atual</Label>
+            <Input
+              id="cpw"
+              type="password"
+              value={curPw}
+              onChange={(e) => setCurPw(e.target.value)}
+              className="h-11"
+              autoComplete="current-password"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="npw">Nova senha</Label>
+            <Input
+              id="npw"
+              type="password"
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+              className="h-11"
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="npw2">Repetir nova senha</Label>
+            <Input
+              id="npw2"
+              type="password"
+              value={pw2}
+              onChange={(e) => setPw2(e.target.value)}
+              className="h-11"
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+        <Button className="mt-3" variant="secondary" disabled={saving} onClick={savePassword}>
+          Alterar senha
+        </Button>
+      </Panel>
+    </div>
+  );
+}
+
 function SettingsPage() {
   const [reduce, setReduce] = useState(false);
   return (

@@ -21,7 +21,6 @@ import {
   Check,
   Pencil,
   Trash2,
-  FlaskConical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -151,6 +150,45 @@ function SidPage() {
   useEffect(() => {
     if (voz) startVoice(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
+
+  // Carrega conversas salvas no banco (somente as do usuário, via RLS).
+  useEffect(() => {
+    listSidConversations()
+      .then((rows) => {
+        if (rows.length)
+          setConvs((cs) => [
+            ...cs,
+            ...rows.map((r) => ({ id: r.id, title: r.title ?? "Conversa", msgs: [] })),
+          ]);
+      })
+      .catch(() => toast.error("Não foi possível carregar o histórico de conversas."));
+  }, []);
+
+  const openConv = (id: string) => {
+    setActive(id);
+    setHistoryOpen(false);
+    const c = convs.find((x) => x.id === id);
+    if (!c || c.msgs.length || !isUuid(id)) return;
+    getSidConversation({ data: { id } })
+      .then((msgs) => {
+        setConvs((cs) =>
+          cs.map((x) =>
+            x.id === id
+              ? {
+                  ...x,
+                  msgs: msgs.map((m) => ({
+                    id: m.id,
+                    role: m.role === "user" ? ("user" as const) : ("sid" as const),
+                    mode: (m.mode === "registrar" ? "registrar" : "perguntar") as SidMode,
+                    text: m.content,
+                  })),
+                }
+              : x,
+          ),
+        );
+      })
+      .catch(() => toast.error("Não foi possível abrir a conversa."));
+  };
   useEffect(() => {
     const ta = taRef.current;
     if (!ta) return;

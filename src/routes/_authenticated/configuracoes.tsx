@@ -144,17 +144,13 @@ function SettingsPage() {
           >
             <p className="text-sm">
               Estado atual:{" "}
-              <b className="text-warning">Modo demonstração — nenhum backend conectado.</b>
+              <b className="text-primary">Backend conectado (Lovable Cloud) com acesso por RLS.</b>
             </p>
-            <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-              <li>
-                O proprietário conecta o projeto Supabase externo (Cloud → “Already have a Supabase
-                project?” ou Conectores → Supabase).
-              </li>
-              <li>Aplicar o schema proposto (tabelas, RLS e buckets privados).</li>
-              <li>Trocar a camada de serviços do modo demo para o Supabase.</li>
-              <li>Habilitar login, convites e persistência real.</li>
-            </ol>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              <li>Login por convite ativo; cadastro público desativado (máx. 6 usuários).</li>
+              <li>Pessoas, Interações e Tarefas já gravam no banco real.</li>
+              <li>Demais telas seguem em demonstração honesta até a migração tela a tela.</li>
+            </ul>
           </Panel>
           <Panel
             title={

@@ -58,20 +58,23 @@ export const Route = createFileRoute("/_authenticated/capturar")({
 
 interface Item {
   id: string;
+  dbId?: string;
   kind: CaptureKind;
   label: string;
   status: CaptureStatus;
   url?: string;
   mime?: string;
+  file?: File | Blob;
+  note?: string;
 }
 
 const STATUS: Record<CaptureStatus, { label: string; cls: string }> = {
   esperando: { label: "Esperando envio", cls: "text-muted-foreground" },
   gravando: { label: "Gravando", cls: "text-destructive" },
-  enviando: { label: "Enviando (simulado)", cls: "text-info" },
-  processando: { label: "Processando (simulado)", cls: "text-info" },
-  revisar: { label: "Precisa revisar", cls: "text-warning" },
-  concluido: { label: "Concluído (demo, não salvo)", cls: "text-success" },
+  enviando: { label: "Enviando", cls: "text-info" },
+  processando: { label: "Processando", cls: "text-info" },
+  revisar: { label: "Enviado · aguardando análise", cls: "text-warning" },
+  concluido: { label: "Concluído", cls: "text-success" },
   erro: { label: "Falha no envio", cls: "text-destructive" },
 };
 
@@ -96,13 +99,21 @@ function CapturePage() {
     setItems((x) => [{ ...it, id: crypto.randomUUID(), status: "esperando" }, ...x]);
   const setStatus = (id: string, status: CaptureStatus) =>
     setItems((x) => x.map((i) => (i.id === id ? { ...i, status } : i)));
-  const send = (id: string) => {
+  const send = async (id: string) => {
+    const it = items.find((x) => x.id === id);
+    if (!it) return;
     setStatus(id, "enviando");
-    setTimeout(() => {
-      if (!navigator.onLine) return setStatus(id, "erro");
-      setStatus(id, "processando");
-      setTimeout(() => setStatus(id, "revisar"), 1500);
-    }, 1200);
+    try {
+      const saved =
+        it.kind === "nota"
+          ? await liveCaptures.createNote(it.note ?? "", it.label)
+          : await liveCaptures.createFile(it.file!, it.kind, it.label, it.mime ?? "application/octet-stream");
+      setItems((x) => x.map((y) => (y.id === id ? { ...y, dbId: saved.id, status: "revisar" } : y)));
+      toast.success("Captura salva no seu espaço privado.");
+    } catch (e) {
+      setStatus(id, "erro");
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar a captura.");
+    }
   };
 
   return (
@@ -112,8 +123,9 @@ function CapturePage() {
       </PageHeader>
       <div className="mb-4">
         <DemoNotice>
-          Sem backend conectado: envio e processamento são <b>simulados localmente</b>. Nenhum
-          arquivo sai do seu aparelho e nada é transcrito por IA.
+          As capturas são <b>salvas de verdade</b> no seu espaço privado. A análise por IA
+          (transcrição, resumo e sugestões) ainda não está conectada — por isso tudo chega como
+          “aguardando análise”.
         </DemoNotice>
       </div>
 

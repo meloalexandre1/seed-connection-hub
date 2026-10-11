@@ -194,5 +194,66 @@ export const liveAgenda = {
   },
 };
 
+export const liveCaptures = {
+  async createNote(note: string, title: string) {
+    const owner_id = await uid();
+    return must(
+      await supabase
+        .from("captures")
+        .insert({
+          owner_id,
+          visibility: "privado",
+          source: "captura",
+          kind: "nota",
+          status: "revisar",
+          title,
+          note,
+        })
+        .select()
+        .single(),
+    );
+  },
+  async createFile(file: File | Blob, kind: string, label: string, mime: string) {
+    const owner_id = await uid();
+    const capture = must(
+      await supabase
+        .from("captures")
+        .insert({
+          owner_id,
+          visibility: "privado",
+          source: "captura",
+          kind,
+          status: "enviando",
+          title: label,
+          mime,
+          size_bytes: file.size,
+        })
+        .select()
+        .single(),
+    );
+    const ext =
+      file instanceof File && file.name.includes(".")
+        ? file.name.split(".").pop()
+        : (mime.split("/")[1]?.split(";")[0] ?? "bin");
+    const path = `${owner_id}/${capture.id}/arquivo.${ext}`;
+    const up = await supabase.storage.from("captures").upload(path, file, { contentType: mime });
+    if (up.error) {
+      await supabase.from("captures").update({ status: "erro", error: up.error.message }).eq("id", capture.id);
+      throw new Error(up.error.message);
+    }
+    return must(
+      await supabase
+        .from("captures")
+        .update({ storage_path: path, status: "revisar" })
+        .eq("id", capture.id)
+        .select()
+        .single(),
+    );
+  },
+  async markReviewed(id: string) {
+    must(await supabase.from("captures").update({ status: "concluido" }).eq("id", id));
+  },
+};
+
 export const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—";

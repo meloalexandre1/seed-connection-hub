@@ -1,9 +1,14 @@
--- Seed Connection · schema COMPLETO para um Supabase EXTERNO NOVO e exclusivo.
--- GERADO pela concatenação de migrations/0001..0007 (fonte de verdade: migrations/).
--- NÃO aplicado. Leia CONNECT.md antes. Idempotente: pode ser reexecutado.
+-- ============================================================
+-- Seed Connection · schema.sql (GERADO — não editar à mão)
+-- Concatenação de docs/supabase/migrations/0001..0007.
+-- Nota Lovable Cloud: buckets 'captures' (500MB) e 'sid-attachments'
+-- (100MB) são criados pela Storage API; o INSERT em storage.buckets
+-- abaixo vale para um Supabase externo auto-hospedado.
+-- ============================================================
 
 
--- ================= migrations/0001_foundation.sql =================
+-- ================= 0001_foundation.sql =================
+
 -- 0001 · Fundação: schema privado, enums, papéis da equipe, funções auxiliares.
 -- Idempotente. NÃO executado. Revisar antes de aplicar em um Supabase NOVO e exclusivo.
 
@@ -95,7 +100,8 @@ drop policy if exists user_roles_admin_delete on public.user_roles;
 create policy user_roles_admin_delete on public.user_roles for delete to authenticated
   using (private.has_role('admin'));
 
--- ================= migrations/0002_projects_access.sql =================
+-- ================= 0002_projects_access.sql =================
+
 -- 0002 · Projetos e regras centrais de acesso por owner/visibilidade.
 
 create table if not exists public.projects (
@@ -178,7 +184,8 @@ create policy project_members_manage on public.project_members for all to authen
               and exists (select 1 from public.user_roles r where r.user_id = project_members.user_id));
 -- Políticas de public.projects são aplicadas em 0006 (mesmo padrão das demais tabelas com dono).
 
--- ================= migrations/0003_people_sid.sql =================
+-- ================= 0003_people_sid.sql =================
+
 -- 0003 · Pessoas, contatos, organizações, relações e conversas do SID.
 
 create table if not exists public.people (
@@ -291,7 +298,11 @@ create or replace function private.can_read_message(_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.sid_messages m where m.id = _id and private.can_read_conversation(m.conversation_id)) $$;
 
-revoke all on all functions in schema private from public, anon;
+-- Revoke pontual (o revoke global em schema private removeria EXECUTE já
+-- concedido a authenticated em 0001/0002; manter EXECUTE é obrigatório).
+revoke execute on function private.can_read_person(uuid), private.can_write_person(uuid),
+  private.can_read_conversation(uuid), private.can_write_conversation(uuid), private.can_read_message(uuid)
+  from public, anon;
 grant execute on function private.can_read_person(uuid), private.can_write_person(uuid),
   private.can_read_conversation(uuid), private.can_write_conversation(uuid), private.can_read_message(uuid) to authenticated;
 
@@ -356,7 +367,8 @@ drop policy if exists message_attachments_delete on public.message_attachments;
 create policy message_attachments_delete on public.message_attachments for delete to authenticated
   using (uploaded_by = (select auth.uid()));
 
--- ================= migrations/0004_captures_knowledge.sql =================
+-- ================= 0004_captures_knowledge.sql =================
+
 -- 0004 · Capturas, transcrições, jobs, interações e fatos (com origem e status de revisão).
 
 create table if not exists public.captures (
@@ -441,7 +453,8 @@ language sql stable security definer set search_path = '' as $$
 create or replace function private.can_write_capture(_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.captures c where c.id = _id and private.can_write(c.owner_id, c.visibility, c.project_id)) $$;
-revoke all on all functions in schema private from public, anon;
+-- Revoke pontual (o revoke global removeria EXECUTE de authenticated; mantê-lo é obrigatório).
+revoke execute on function private.can_read_capture(uuid), private.can_write_capture(uuid) from public, anon;
 grant execute on function private.can_read_capture(uuid), private.can_write_capture(uuid) to authenticated;
 
 grant select, insert, update, delete on public.captures, public.transcripts, public.interactions, public.facts to authenticated;
@@ -464,7 +477,8 @@ drop policy if exists processing_jobs_select on public.processing_jobs;
 create policy processing_jobs_select on public.processing_jobs for select to authenticated
   using (private.can_read_capture(capture_id));
 
--- ================= migrations/0005_work_imports_audit.sql =================
+-- ================= 0005_work_imports_audit.sql =================
+
 -- 0005 · Oportunidades, tarefas, follow-ups, importações e auditoria.
 
 create table if not exists public.opportunities (
@@ -568,7 +582,8 @@ revoke all on function private.audit() from public, anon, authenticated;
 create or replace function private.can_read_import(_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.imports i where i.id = _id and i.owner_id = (select auth.uid())) and private.is_member() $$;
-revoke all on all functions in schema private from public, anon;
+-- Revoke pontual (o revoke global removeria EXECUTE de authenticated; mantê-lo é obrigatório).
+revoke execute on function private.can_read_import(uuid) from public, anon;
 grant execute on function private.can_read_import(uuid) to authenticated;
 
 grant select, insert, update, delete on public.opportunities, public.opportunity_people, public.tasks,
@@ -629,7 +644,8 @@ create policy import_rows_owner on public.import_rows for all to authenticated
   using (private.can_read_import(import_id))
   with check (private.can_read_import(import_id) and (person_id is null or private.can_write_person(person_id)));
 
--- ================= migrations/0006_policies_triggers_storage.sql =================
+-- ================= 0006_policies_triggers_storage.sql =================
+
 -- 0006 · Políticas padronizadas, triggers (updated_at, owner, auditoria) e Storage privado.
 
 -- Tabelas com dono + visibilidade.
@@ -737,7 +753,8 @@ create policy seed_objects_delete on storage.objects for delete to authenticated
   using (bucket_id in ('captures','sid-attachments') and private.is_member()
          and (storage.foldername(name))[1] = (select auth.uid())::text);
 
--- ================= migrations/0007_bootstrap_admin.sql =================
+-- ================= 0007_bootstrap_admin.sql =================
+
 -- 0007 · Bootstrap auditável do primeiro administrador.
 -- Executável SOMENTE no SQL Editor (role postgres). Não exposto à API.
 -- Uso, após convidar o proprietário em Authentication → Users → Invite:

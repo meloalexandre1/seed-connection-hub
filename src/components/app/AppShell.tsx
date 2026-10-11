@@ -164,7 +164,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </header>
 
-        <main className="flex-1 px-4 pb-28 pt-5 lg:px-7 lg:pb-10">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-clip px-4 pb-28 pt-5 lg:px-7 lg:pb-10">{children}</main>
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>

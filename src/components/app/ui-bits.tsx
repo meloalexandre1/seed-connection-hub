@@ -39,7 +39,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-2xl border bg-card p-4", className)}>
+    <section className={cn("min-w-0 rounded-2xl border bg-card p-4", className)}>
       {title && (
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-sm font-semibold">{title}</h2>

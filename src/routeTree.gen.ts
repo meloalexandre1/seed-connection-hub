@@ -10,33 +10,193 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as CapturarRouteImport } from './routes/capturar'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as MapaRouteImport } from './routes/mapa'
+import { Route as OportunidadesRouteImport } from './routes/oportunidades'
+import { Route as ProjetosRouteImport } from './routes/projetos'
+import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as SidRouteImport } from './routes/sid'
+import { Route as TarefasRouteImport } from './routes/tarefas'
+import { Route as PessoasIndexRouteImport } from './routes/pessoas.index'
+import { Route as PessoasIdRouteImport } from './routes/pessoas.$id'
+import { Route as PessoasImportarRouteImport } from './routes/pessoas.importar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgendaRoute = AgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CapturarRoute = CapturarRouteImport.update({
+  id: '/capturar',
+  path: '/capturar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapaRoute = MapaRouteImport.update({
+  id: '/mapa',
+  path: '/mapa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OportunidadesRoute = OportunidadesRouteImport.update({
+  id: '/oportunidades',
+  path: '/oportunidades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjetosRoute = ProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatoriosRoute = RelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SidRoute = SidRouteImport.update({
+  id: '/sid',
+  path: '/sid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TarefasRoute = TarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasIndexRoute = PessoasIndexRouteImport.update({
+  id: '/pessoas/',
+  path: '/pessoas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasIdRoute = PessoasIdRouteImport.update({
+  id: '/pessoas/$id',
+  path: '/pessoas/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasImportarRoute = PessoasImportarRouteImport.update({
+  id: '/pessoas/importar',
+  path: '/pessoas/importar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/capturar': typeof CapturarRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/mapa': typeof MapaRoute
+  '/oportunidades': typeof OportunidadesRoute
+  '/projetos': typeof ProjetosRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/sid': typeof SidRoute
+  '/tarefas': typeof TarefasRoute
+  '/pessoas/$id': typeof PessoasIdRoute
+  '/pessoas/importar': typeof PessoasImportarRoute
+  '/pessoas/': typeof PessoasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/capturar': typeof CapturarRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/mapa': typeof MapaRoute
+  '/oportunidades': typeof OportunidadesRoute
+  '/projetos': typeof ProjetosRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/sid': typeof SidRoute
+  '/tarefas': typeof TarefasRoute
+  '/pessoas/$id': typeof PessoasIdRoute
+  '/pessoas/importar': typeof PessoasImportarRoute
+  '/pessoas': typeof PessoasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/capturar': typeof CapturarRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/mapa': typeof MapaRoute
+  '/oportunidades': typeof OportunidadesRoute
+  '/projetos': typeof ProjetosRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/sid': typeof SidRoute
+  '/tarefas': typeof TarefasRoute
+  '/pessoas/$id': typeof PessoasIdRoute
+  '/pessoas/importar': typeof PessoasImportarRoute
+  '/pessoas/': typeof PessoasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/agenda'
+    | '/capturar'
+    | '/configuracoes'
+    | '/mapa'
+    | '/oportunidades'
+    | '/projetos'
+    | '/relatorios'
+    | '/sid'
+    | '/tarefas'
+    | '/pessoas/$id'
+    | '/pessoas/importar'
+    | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/agenda'
+    | '/capturar'
+    | '/configuracoes'
+    | '/mapa'
+    | '/oportunidades'
+    | '/projetos'
+    | '/relatorios'
+    | '/sid'
+    | '/tarefas'
+    | '/pessoas/$id'
+    | '/pessoas/importar'
+    | '/pessoas'
+  id:
+    | '__root__'
+    | '/'
+    | '/agenda'
+    | '/capturar'
+    | '/configuracoes'
+    | '/mapa'
+    | '/oportunidades'
+    | '/projetos'
+    | '/relatorios'
+    | '/sid'
+    | '/tarefas'
+    | '/pessoas/$id'
+    | '/pessoas/importar'
+    | '/pessoas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgendaRoute: typeof AgendaRoute
+  CapturarRoute: typeof CapturarRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  MapaRoute: typeof MapaRoute
+  OportunidadesRoute: typeof OportunidadesRoute
+  ProjetosRoute: typeof ProjetosRoute
+  RelatoriosRoute: typeof RelatoriosRoute
+  SidRoute: typeof SidRoute
+  TarefasRoute: typeof TarefasRoute
+  PessoasIdRoute: typeof PessoasIdRoute
+  PessoasImportarRoute: typeof PessoasImportarRoute
+  PessoasIndexRoute: typeof PessoasIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +208,107 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agenda': {
+      id: '/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/capturar': {
+      id: '/capturar'
+      path: '/capturar'
+      fullPath: '/capturar'
+      preLoaderRoute: typeof CapturarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mapa': {
+      id: '/mapa'
+      path: '/mapa'
+      fullPath: '/mapa'
+      preLoaderRoute: typeof MapaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oportunidades': {
+      id: '/oportunidades'
+      path: '/oportunidades'
+      fullPath: '/oportunidades'
+      preLoaderRoute: typeof OportunidadesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projetos': {
+      id: '/projetos'
+      path: '/projetos'
+      fullPath: '/projetos'
+      preLoaderRoute: typeof ProjetosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorios': {
+      id: '/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sid': {
+      id: '/sid'
+      path: '/sid'
+      fullPath: '/sid'
+      preLoaderRoute: typeof SidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tarefas': {
+      id: '/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof TarefasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/': {
+      id: '/pessoas/'
+      path: '/pessoas'
+      fullPath: '/pessoas/'
+      preLoaderRoute: typeof PessoasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/$id': {
+      id: '/pessoas/$id'
+      path: '/pessoas/$id'
+      fullPath: '/pessoas/$id'
+      preLoaderRoute: typeof PessoasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/importar': {
+      id: '/pessoas/importar'
+      path: '/pessoas/importar'
+      fullPath: '/pessoas/importar'
+      preLoaderRoute: typeof PessoasImportarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgendaRoute: AgendaRoute,
+  CapturarRoute: CapturarRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  MapaRoute: MapaRoute,
+  OportunidadesRoute: OportunidadesRoute,
+  ProjetosRoute: ProjetosRoute,
+  RelatoriosRoute: RelatoriosRoute,
+  SidRoute: SidRoute,
+  TarefasRoute: TarefasRoute,
+  PessoasIdRoute: PessoasIdRoute,
+  PessoasImportarRoute: PessoasImportarRoute,
+  PessoasIndexRoute: PessoasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

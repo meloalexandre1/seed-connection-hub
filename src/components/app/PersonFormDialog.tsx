@@ -62,7 +62,7 @@ export function PersonFormDialog({
           className="grid gap-3"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!f.name.trim()) return toast.error("Informe o nome.");
+            if (!f.name.trim()) { toast.error("Informe o nome."); return; }
             onSubmit(
               {
                 name: f.name.trim(),

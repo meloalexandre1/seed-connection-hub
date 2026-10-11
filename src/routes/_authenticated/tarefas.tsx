@@ -118,7 +118,7 @@ function NewTask({ open, onOpenChange, people, onCreate, busy }: {
         </DialogHeader>
         <form id="nt" className="grid gap-3" onSubmit={(e) => {
           e.preventDefault();
-          if (!title.trim()) return toast.error("Informe o título.");
+          if (!title.trim()) { toast.error("Informe o título."); return; }
           onCreate({ title: title.trim(), due_date: due || null, priority: prio, person_id: person === "none" ? null : person });
           setTitle(""); setDue("");
         }}>

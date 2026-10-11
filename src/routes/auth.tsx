@@ -58,7 +58,7 @@ function AuthPage() {
   }
 
   async function forgot() {
-    if (!email.trim()) return toast.error("Digite seu e-mail primeiro.");
+    if (!email.trim()) { toast.error("Digite seu e-mail primeiro."); return; }
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/auth`,
     });

@@ -69,55 +69,17 @@ function SettingsPage() {
         </TabsList>
 
         <TabsContent value="perfil">
-          <Panel title="Seu perfil">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="pn">Nome</Label>
-                <Input id="pn" defaultValue="Proprietário" className="h-11" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="pe">E-mail</Label>
-                <Input id="pe" placeholder="definido no login" disabled className="h-11" />
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Login ainda não disponível: será habilitado com o Supabase Auth do projeto do
-              proprietário.
-            </p>
-            <Button
-              className="mt-3"
-              onClick={() => toast.warning("Demonstração: perfil não foi salvo.")}
-            >
-              Salvar (demo)
-            </Button>
-          </Panel>
+          <ProfileTab />
         </TabsContent>
 
         <TabsContent value="equipe">
-          <Panel title="Equipe (até 5 usuários)">
-            <ul className="divide-y text-sm">
-              <li className="flex items-center justify-between py-3">
-                <span>Proprietário</span>
-                <span className="text-xs text-primary">Administrador</span>
-              </li>
-              {[1, 2, 3, 4].map((i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between py-3 text-muted-foreground"
-                >
-                  <span>Vaga {i + 1} disponível</span>
-                  <span className="text-xs">Gestor ou Operacional</span>
-                </li>
-              ))}
-            </ul>
-            <Button
-              variant="secondary"
-              className="mt-3"
-              onClick={() =>
-                toast.info("Convites exigem backend com autenticação. Indisponível no demo.")
-              }
-            >
-              Convidar usuário
+          <Panel title="Equipe (até 5 colaboradores)">
+            <p className="text-sm text-muted-foreground">
+              Convites, papéis (Administrador, Gestor, Operacional) e histórico de acessos ficam na
+              tela <b>Acesso e equipe</b>, exclusiva de administradores.
+            </p>
+            <Button asChild className="mt-3">
+              <Link to="/acesso">Abrir Acesso e equipe</Link>
             </Button>
           </Panel>
         </TabsContent>

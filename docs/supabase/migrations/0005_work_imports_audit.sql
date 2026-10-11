@@ -101,7 +101,8 @@ revoke all on function private.audit() from public, anon, authenticated;
 create or replace function private.can_read_import(_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.imports i where i.id = _id and i.owner_id = (select auth.uid())) and private.is_member() $$;
-revoke all on all functions in schema private from public, anon;
+-- Revoke pontual (o revoke global removeria EXECUTE de authenticated; mantê-lo é obrigatório).
+revoke execute on function private.can_read_import(uuid) from public, anon;
 grant execute on function private.can_read_import(uuid) to authenticated;
 
 grant select, insert, update, delete on public.opportunities, public.opportunity_people, public.tasks,

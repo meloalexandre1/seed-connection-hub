@@ -10,8 +10,8 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
-- All data access goes through `src/services/index.ts`; today it serves fictitious demo data only (`DATA_MODE = "demo"`). Why: swap to the owner's external Supabase later without touching screens.
-- No Lovable Cloud backend and no invented Supabase connection; the proposed schema/RLS lives in `docs/supabase/schema.sql`. Why: the owner's external Supabase is the only source of truth.
+- All data access goes through `src/services/index.ts`; today it serves fictitious demo data only (`DATA_MODE = "demo"`). Why: swap screens to the live backend without touching UI components.
+- The backend is Lovable Cloud (Supabase under the hood); its schema/RLS is defined by `docs/supabase/migrations/NNNN_*.sql`, already applied to the live backend. Why: single source of truth for the schema; screens swap from demo to live service by service.
 - Never store real data in localStorage and never ship privileged keys to the browser. Why: privacy/LGPD.
 - Demo actions must show an honest "not saved" notice, never a fake success. Why: no fake integrations.
 - App chrome (sidebar desktop, bottom nav mobile) lives in `src/components/app/AppShell.tsx`, mounted in `__root.tsx`.

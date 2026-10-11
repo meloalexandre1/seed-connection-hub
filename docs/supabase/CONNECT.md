@@ -1,6 +1,14 @@
-# Conectar o Seed Connection a um Supabase externo (ainda NÃO feito)
+# Backend do Seed Connection
 
-Estado atual: **nada está conectado**. O app roda em modo demonstração (`DATA_MODE = "demo"` em `src/services/index.ts`) e a UI mostra isso. Nenhuma migração foi executada.
+Estado atual: **Lovable Cloud conectado e schema aplicado** (a pedido do proprietário). As migrações `migrations/0001` … `0007` foram aplicadas ao backend gerenciado (23 tabelas em `public`, RLS ativo em todas, buckets privados `captures` e `sid-attachments` criados). O app ainda roda em modo demonstração (`DATA_MODE = "demo"` em `src/services/index.ts`) até a troca tela por tela.
+
+> Nota: este documento foi escrito para um Supabase externo. Com o Lovable Cloud, os passos de conexão manual (OAuth, chaves, painel Supabase) não se aplicam; a validação de login e políticas continua válida.
+
+## Pendente para ativar o uso real
+1. Convidar o proprietário e até 5 pessoas: Cloud → Users.
+2. Bootstrap do primeiro admin (auditável), via SQL: `select private.bootstrap_first_admin('email@do-proprietario');`
+3. Trocar `src/services` do demo para o backend, tela por tela, removendo os avisos "demo".
+
 
 ## 1. Criar o projeto Supabase (pelo proprietário)
 1. Em supabase.com, crie um projeto **novo e exclusivo** para o Seed Connection (região São Paulo, recomendado para LGPD).

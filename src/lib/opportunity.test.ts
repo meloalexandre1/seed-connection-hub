@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { recommend } from "./opportunity";
 
-const base = { retorno: 3, urgencia: 3, esforco: 3, complexidade: 3, custo_oportunidade: 3, capacidade: 3, conectar: 3 };
+const base = {
+  retorno: 3,
+  urgencia: 3,
+  esforco: 3,
+  complexidade: 3,
+  custo_oportunidade: 3,
+  capacidade: 3,
+  conectar: 3,
+};
 
 describe("recommend", () => {
   it("encerra quando retorno e urgência são baixos", () => {

@@ -7,7 +7,11 @@ export const FACTORS: { key: FactorKey; label: string; hint: string }[] = [
   { key: "complexidade", label: "Complexidade", hint: "1 simples · 5 complexa" },
   { key: "custo_oportunidade", label: "Custo de oportunidade", hint: "1 baixo · 5 alto" },
   { key: "capacidade", label: "Capacidade de execução da equipe", hint: "1 nenhuma · 5 total" },
-  { key: "conectar", label: "Potencial de conectar alguém da rede", hint: "1 ninguém · 5 alguém ideal" },
+  {
+    key: "conectar",
+    label: "Potencial de conectar alguém da rede",
+    hint: "1 ninguém · 5 alguém ideal",
+  },
 ];
 
 export interface RecommendationResult {

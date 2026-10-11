@@ -4,7 +4,17 @@ import { cn } from "@/lib/utils";
 import { proximityOf } from "@/services";
 import type { Priority, Proximity } from "@/types/domain";
 
-export function PageHeader({ eyebrow, title, actions, children }: { eyebrow?: string; title: string; actions?: ReactNode; children?: ReactNode }) {
+export function PageHeader({
+  eyebrow,
+  title,
+  actions,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  actions?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
@@ -17,7 +27,17 @@ export function PageHeader({ eyebrow, title, actions, children }: { eyebrow?: st
   );
 }
 
-export function Panel({ title, action, children, className }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+export function Panel({
+  title,
+  action,
+  children,
+  className,
+}: {
+  title?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section className={cn("rounded-2xl border bg-card p-4", className)}>
       {title && (
@@ -41,14 +61,25 @@ export function DemoTag({ children = "Exemplo fictício" }: { children?: ReactNo
 
 export function DemoNotice({ children }: { children: ReactNode }) {
   return (
-    <div role="note" className="flex gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 text-xs text-areia">
+    <div
+      role="note"
+      className="flex gap-2 rounded-xl border border-warning/30 bg-warning/5 p-3 text-xs text-areia"
+    >
       <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
       <div>{children}</div>
     </div>
   );
 }
 
-export function EmptyState({ title, text, action }: { title: string; text: string; action?: ReactNode }) {
+export function EmptyState({
+  title,
+  text,
+  action,
+}: {
+  title: string;
+  text: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center rounded-2xl border border-dashed p-8 text-center">
       <Inbox className="h-8 w-8 text-subtle" aria-hidden />
@@ -61,7 +92,13 @@ export function EmptyState({ title, text, action }: { title: string; text: strin
 
 export function LevelBadge({ level }: { level: Proximity }) {
   const p = proximityOf(level);
-  return <span className={cn("whitespace-nowrap rounded-md px-2 py-0.5 text-[10.5px] font-semibold", p.tone)}>{p.label}</span>;
+  return (
+    <span
+      className={cn("whitespace-nowrap rounded-md px-2 py-0.5 text-[10.5px] font-semibold", p.tone)}
+    >
+      {p.label}
+    </span>
+  );
 }
 
 const PRIO: Record<Priority, string> = {
@@ -70,12 +107,35 @@ const PRIO: Record<Priority, string> = {
   baixa: "border-border text-muted-foreground",
 };
 export function PriorityBadge({ p }: { p: Priority }) {
-  return <span className={cn("whitespace-nowrap rounded-full border px-2 py-0.5 text-[10.5px] font-semibold", PRIO[p])}>Prioridade {p === "media" ? "média" : p}</span>;
+  return (
+    <span
+      className={cn(
+        "whitespace-nowrap rounded-full border px-2 py-0.5 text-[10.5px] font-semibold",
+        PRIO[p],
+      )}
+    >
+      Prioridade {p === "media" ? "média" : p}
+    </span>
+  );
 }
 
 export function Avatar({ name, className }: { name: string; className?: string }) {
-  const ini = name.split(" ").map((s) => s[0]).slice(0, 2).join("");
-  return <div className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full bg-n3 text-xs font-bold text-primary-foreground", className)} aria-hidden>{ini}</div>;
+  const ini = name
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("");
+  return (
+    <div
+      className={cn(
+        "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-n3 text-xs font-bold text-primary-foreground",
+        className,
+      )}
+      aria-hidden
+    >
+      {ini}
+    </div>
+  );
 }
 
 export function SeedLogo({ className }: { className?: string }) {
@@ -84,12 +144,17 @@ export function SeedLogo({ className }: { className?: string }) {
       <g transform="translate(20 20) scale(1.6)">
         <g className="stroke-foreground" strokeWidth="3.6" fill="none" strokeLinecap="round">
           <path d="M50 5 Q30 14 22 38 Q16 74 50 95 Q84 74 78 38 Q70 14 50 5" />
-          <line x1="50" y1="60" x2="50" y2="5" /><line x1="50" y1="60" x2="22" y2="38" />
-          <line x1="50" y1="60" x2="78" y2="38" /><line x1="50" y1="60" x2="50" y2="95" />
+          <line x1="50" y1="60" x2="50" y2="5" />
+          <line x1="50" y1="60" x2="22" y2="38" />
+          <line x1="50" y1="60" x2="78" y2="38" />
+          <line x1="50" y1="60" x2="50" y2="95" />
         </g>
         <g className="fill-primary">
-          <circle cx="50" cy="5" r="6.2" /><circle cx="22" cy="38" r="6.2" /><circle cx="78" cy="38" r="6.2" />
-          <circle cx="50" cy="95" r="6.2" /><circle cx="50" cy="60" r="9" />
+          <circle cx="50" cy="5" r="6.2" />
+          <circle cx="22" cy="38" r="6.2" />
+          <circle cx="78" cy="38" r="6.2" />
+          <circle cx="50" cy="95" r="6.2" />
+          <circle cx="50" cy="60" r="9" />
         </g>
       </g>
     </svg>

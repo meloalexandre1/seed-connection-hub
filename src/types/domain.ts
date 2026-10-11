@@ -90,10 +90,4 @@ export interface Project {
 
 export type CaptureKind = "audio" | "arquivo" | "foto" | "nota" | "plaud";
 export type CaptureStatus =
-  | "esperando"
-  | "gravando"
-  | "enviando"
-  | "processando"
-  | "revisar"
-  | "concluido"
-  | "erro";
+  "esperando" | "gravando" | "enviando" | "processando" | "revisar" | "concluido" | "erro";

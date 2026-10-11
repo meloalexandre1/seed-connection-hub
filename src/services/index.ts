@@ -1,7 +1,13 @@
 // Camada de acesso a dados. Hoje: somente DEMO em memória (nada persiste).
 // Quando o Supabase externo for conectado, substitua as implementações por
 // chamadas ao cliente Supabase (chave publicável + RLS). Nunca use service key no front.
-import { DEMO_EVENTS, DEMO_OPPORTUNITIES, DEMO_PEOPLE, DEMO_PROJECTS, DEMO_TASKS } from "./demo-data";
+import {
+  DEMO_EVENTS,
+  DEMO_OPPORTUNITIES,
+  DEMO_PEOPLE,
+  DEMO_PROJECTS,
+  DEMO_TASKS,
+} from "./demo-data";
 import type { Proximity } from "@/types/domain";
 
 export type DataMode = "demo" | "supabase";

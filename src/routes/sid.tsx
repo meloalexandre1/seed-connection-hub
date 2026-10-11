@@ -682,6 +682,10 @@ function SidPage() {
                       No navegador, a gravação para se a tela bloquear ou o app fechar.
                     </p>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem className="min-h-10 sm:hidden" onSelect={() => setAutoSpeak((v) => !v)}>
+                      <Volume2 className="h-4 w-4" />
+                      Resposta falada: {autoSpeak ? "ligada" : "desligada"}
+                    </DropdownMenuItem>
                     <DropdownMenuItem disabled className="min-h-10">
                       <Radio className="h-4 w-4" />
                       PLAUD <span className="ml-auto text-[10px]">futuro</span>

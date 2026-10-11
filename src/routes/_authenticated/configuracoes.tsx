@@ -17,7 +17,7 @@ import {
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/configuracoes")({
+export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => pageHead("Configurações", "Perfil, equipe, autonomia do SID, integrações e dados."),
   component: SettingsPage,
 });

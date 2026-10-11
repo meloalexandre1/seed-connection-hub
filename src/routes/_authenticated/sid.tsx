@@ -54,7 +54,7 @@ import {
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/sid")({
+export const Route = createFileRoute("/_authenticated/sid")({
   validateSearch: (
     s: Record<string, unknown>,
   ): { q?: string | undefined; voz?: boolean | undefined } => ({

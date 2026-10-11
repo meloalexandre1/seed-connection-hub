@@ -6,7 +6,7 @@ import { projectsService } from "@/services";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/projetos")({
+export const Route = createFileRoute("/_authenticated/projetos")({
   head: () => pageHead("Projetos", "Objetivos, responsáveis, status, marcos e riscos."),
   component: ProjectsPage,
 });

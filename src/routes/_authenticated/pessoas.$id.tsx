@@ -16,7 +16,7 @@ import {
 import { peopleService } from "@/services";
 import type { Followup } from "@/types/domain";
 
-export const Route = createFileRoute("/pessoas/$id")({
+export const Route = createFileRoute("/_authenticated/pessoas/$id")({
   loader: ({ params }) => {
     const person = peopleService.get(params.id);
     if (!person) throw notFound();

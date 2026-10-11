@@ -6,7 +6,7 @@ import type { CalendarEvent } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/agenda")({
+export const Route = createFileRoute("/_authenticated/agenda")({
   head: () => pageHead("Agenda", "Reuniões, follow-ups e prazos da semana."),
   component: AgendaPage,
 });

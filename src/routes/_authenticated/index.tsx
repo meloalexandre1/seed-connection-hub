@@ -15,7 +15,7 @@ import { Panel, DemoTag, EmptyState, PriorityBadge } from "@/components/app/ui-b
 import { peopleService, tasksService } from "@/services";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () =>
     pageHead(
       "Início",

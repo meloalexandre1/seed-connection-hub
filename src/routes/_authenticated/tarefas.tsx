@@ -26,7 +26,7 @@ import type { Priority, Task, TaskStatus } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/tarefas")({
+export const Route = createFileRoute("/_authenticated/tarefas")({
   head: () => pageHead("Tarefas", "Kanban de tarefas e follow-ups vinculados a pessoas."),
   component: TasksPage,
 });

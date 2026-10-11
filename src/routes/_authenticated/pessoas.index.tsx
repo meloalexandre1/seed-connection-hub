@@ -33,7 +33,7 @@ import type { Person, Priority, Proximity } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/pessoas/")({
+export const Route = createFileRoute("/_authenticated/pessoas/")({
   head: () => pageHead("Pessoas", "CRM de relacionamentos: busque, filtre e abra perfis."),
   component: PeoplePage,
 });

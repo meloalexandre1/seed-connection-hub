@@ -19,7 +19,7 @@ import { FACTORS, recommend } from "@/lib/opportunity";
 import type { FactorKey, Opportunity, Recommendation } from "@/types/domain";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/oportunidades")({
+export const Route = createFileRoute("/_authenticated/oportunidades")({
   head: () =>
     pageHead(
       "Oportunidades",

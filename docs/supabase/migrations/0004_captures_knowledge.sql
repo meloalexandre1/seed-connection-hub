@@ -82,7 +82,8 @@ language sql stable security definer set search_path = '' as $$
 create or replace function private.can_write_capture(_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.captures c where c.id = _id and private.can_write(c.owner_id, c.visibility, c.project_id)) $$;
-revoke all on all functions in schema private from public, anon;
+-- Revoke pontual (o revoke global removeria EXECUTE de authenticated; mantê-lo é obrigatório).
+revoke execute on function private.can_read_capture(uuid), private.can_write_capture(uuid) from public, anon;
 grant execute on function private.can_read_capture(uuid), private.can_write_capture(uuid) to authenticated;
 
 grant select, insert, update, delete on public.captures, public.transcripts, public.interactions, public.facts to authenticated;

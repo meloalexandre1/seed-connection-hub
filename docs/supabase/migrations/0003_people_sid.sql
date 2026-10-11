@@ -110,7 +110,11 @@ create or replace function private.can_read_message(_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.sid_messages m where m.id = _id and private.can_read_conversation(m.conversation_id)) $$;
 
-revoke all on all functions in schema private from public, anon;
+-- Revoke pontual (o revoke global em schema private removeria EXECUTE já
+-- concedido a authenticated em 0001/0002; manter EXECUTE é obrigatório).
+revoke execute on function private.can_read_person(uuid), private.can_write_person(uuid),
+  private.can_read_conversation(uuid), private.can_write_conversation(uuid), private.can_read_message(uuid)
+  from public, anon;
 grant execute on function private.can_read_person(uuid), private.can_write_person(uuid),
   private.can_read_conversation(uuid), private.can_write_conversation(uuid), private.can_read_message(uuid) to authenticated;
 

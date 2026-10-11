@@ -618,16 +618,21 @@ export type Database = {
           aliases: string[]
           city: string | null
           company: string | null
+          context: string | null
           created_at: string
           id: string
           last_interaction_at: string | null
           name: string
+          needs: string[]
+          next_action: string | null
           next_followup_at: string | null
           owner_id: string
           priority: Database["public"]["Enums"]["priority"]
           project_id: string | null
           proximity: Database["public"]["Enums"]["proximity"]
+          relationship_type: string | null
           role: string | null
+          skills: string[]
           source: Database["public"]["Enums"]["source_kind"]
           sphere: string | null
           updated_at: string
@@ -637,16 +642,21 @@ export type Database = {
           aliases?: string[]
           city?: string | null
           company?: string | null
+          context?: string | null
           created_at?: string
           id?: string
           last_interaction_at?: string | null
           name: string
+          needs?: string[]
+          next_action?: string | null
           next_followup_at?: string | null
           owner_id?: string
           priority?: Database["public"]["Enums"]["priority"]
           project_id?: string | null
           proximity?: Database["public"]["Enums"]["proximity"]
+          relationship_type?: string | null
           role?: string | null
+          skills?: string[]
           source?: Database["public"]["Enums"]["source_kind"]
           sphere?: string | null
           updated_at?: string
@@ -656,16 +666,21 @@ export type Database = {
           aliases?: string[]
           city?: string | null
           company?: string | null
+          context?: string | null
           created_at?: string
           id?: string
           last_interaction_at?: string | null
           name?: string
+          needs?: string[]
+          next_action?: string | null
           next_followup_at?: string | null
           owner_id?: string
           priority?: Database["public"]["Enums"]["priority"]
           project_id?: string | null
           proximity?: Database["public"]["Enums"]["proximity"]
+          relationship_type?: string | null
           role?: string | null
+          skills?: string[]
           source?: Database["public"]["Enums"]["source_kind"]
           sphere?: string | null
           updated_at?: string

@@ -1,14 +1,3 @@
--- ============================================================
--- Seed Connection · schema.sql (GERADO — não editar à mão)
--- Concatenação de docs/supabase/migrations/0001..0007.
--- Nota Lovable Cloud: buckets 'captures' (500MB) e 'sid-attachments'
--- (100MB) são criados pela Storage API; o INSERT em storage.buckets
--- abaixo vale para um Supabase externo auto-hospedado.
--- ============================================================
-
-
--- ================= 0001_foundation.sql =================
-
 -- 0001 · Fundação: schema privado, enums, papéis da equipe, funções auxiliares.
 -- Idempotente. NÃO executado. Revisar antes de aplicar em um Supabase NOVO e exclusivo.
 
@@ -99,9 +88,6 @@ create policy user_roles_admin_update on public.user_roles for update to authent
 drop policy if exists user_roles_admin_delete on public.user_roles;
 create policy user_roles_admin_delete on public.user_roles for delete to authenticated
   using (private.has_role('admin'));
-
--- ================= 0002_projects_access.sql =================
-
 -- 0002 · Projetos e regras centrais de acesso por owner/visibilidade.
 
 create table if not exists public.projects (
@@ -183,9 +169,6 @@ create policy project_members_manage on public.project_members for all to authen
                  and private.can_write(p.owner_id, p.visibility, p.id))
               and exists (select 1 from public.user_roles r where r.user_id = project_members.user_id));
 -- Políticas de public.projects são aplicadas em 0006 (mesmo padrão das demais tabelas com dono).
-
--- ================= 0003_people_sid.sql =================
-
 -- 0003 · Pessoas, contatos, organizações, relações e conversas do SID.
 
 create table if not exists public.people (
@@ -366,9 +349,6 @@ create policy message_attachments_insert on public.message_attachments for inser
 drop policy if exists message_attachments_delete on public.message_attachments;
 create policy message_attachments_delete on public.message_attachments for delete to authenticated
   using (uploaded_by = (select auth.uid()));
-
--- ================= 0004_captures_knowledge.sql =================
-
 -- 0004 · Capturas, transcrições, jobs, interações e fatos (com origem e status de revisão).
 
 create table if not exists public.captures (
@@ -476,9 +456,6 @@ create policy captures_path_restrict on public.captures as restrictive for inser
 drop policy if exists processing_jobs_select on public.processing_jobs;
 create policy processing_jobs_select on public.processing_jobs for select to authenticated
   using (private.can_read_capture(capture_id));
-
--- ================= 0005_work_imports_audit.sql =================
-
 -- 0005 · Oportunidades, tarefas, follow-ups, importações e auditoria.
 
 create table if not exists public.opportunities (
@@ -643,9 +620,6 @@ drop policy if exists import_rows_owner on public.import_rows;
 create policy import_rows_owner on public.import_rows for all to authenticated
   using (private.can_read_import(import_id))
   with check (private.can_read_import(import_id) and (person_id is null or private.can_write_person(person_id)));
-
--- ================= 0006_policies_triggers_storage.sql =================
-
 -- 0006 · Políticas padronizadas, triggers (updated_at, owner, auditoria) e Storage privado.
 
 -- Tabelas com dono + visibilidade.
@@ -752,9 +726,6 @@ drop policy if exists seed_objects_delete on storage.objects;
 create policy seed_objects_delete on storage.objects for delete to authenticated
   using (bucket_id in ('captures','sid-attachments') and private.is_member()
          and (storage.foldername(name))[1] = (select auth.uid())::text);
-
--- ================= 0007_bootstrap_admin.sql =================
-
 -- 0007 · Bootstrap auditável do primeiro administrador.
 -- Executável SOMENTE no SQL Editor (role postgres). Não exposto à API.
 -- Uso, após convidar o proprietário em Authentication → Users → Invite:
@@ -775,3 +746,9 @@ begin
   return uid;
 end $$;
 revoke all on function private.bootstrap_first_admin(text) from public, anon, authenticated, service_role;
+-- 0008: campos de perfil de pessoas (aditivo, idempotente)
+alter table public.people add column if not exists relationship_type text;
+alter table public.people add column if not exists context text;
+alter table public.people add column if not exists needs text[] not null default '{}';
+alter table public.people add column if not exists skills text[] not null default '{}';
+alter table public.people add column if not exists next_action text;

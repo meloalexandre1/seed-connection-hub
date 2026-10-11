@@ -6,7 +6,7 @@ import { PROXIMITY, peopleService } from "@/services";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/mapa")({
+export const Route = createFileRoute("/_authenticated/mapa")({
   head: () => pageHead("Mapa da rede", "Visualização relacional das pessoas e conexões."),
   component: MapPage,
 });

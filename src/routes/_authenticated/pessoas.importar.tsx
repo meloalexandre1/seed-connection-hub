@@ -14,7 +14,7 @@ import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
 import { normalizePhone, peopleService } from "@/services";
 import { pageHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/pessoas/importar")({
+export const Route = createFileRoute("/_authenticated/pessoas/importar")({
   head: () =>
     pageHead(
       "Importar contatos",

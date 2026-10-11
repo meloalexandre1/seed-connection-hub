@@ -21,7 +21,6 @@ import {
   Check,
   Pencil,
   Trash2,
-  FlaskConical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,9 +41,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SeedLogo } from "@/components/app/ui-bits";
-import { peopleService } from "@/services";
+import { askSid, listSidConversations, getSidConversation } from "@/lib/sid.functions";
+import { isUuid } from "@/services/live";
 import {
-  buildDemoReply,
   formatSize,
   kindOf,
   type Attachment,
@@ -151,6 +150,45 @@ function SidPage() {
   useEffect(() => {
     if (voz) startVoice(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
+
+  // Carrega conversas salvas no banco (somente as do usuário, via RLS).
+  useEffect(() => {
+    listSidConversations()
+      .then((rows) => {
+        if (rows.length)
+          setConvs((cs) => [
+            ...cs,
+            ...rows.map((r) => ({ id: r.id, title: r.title ?? "Conversa", msgs: [] })),
+          ]);
+      })
+      .catch(() => toast.error("Não foi possível carregar o histórico de conversas."));
+  }, []);
+
+  const openConv = (id: string) => {
+    setActive(id);
+    setHistoryOpen(false);
+    const c = convs.find((x) => x.id === id);
+    if (!c || c.msgs.length || !isUuid(id)) return;
+    getSidConversation({ data: { id } })
+      .then((msgs) => {
+        setConvs((cs) =>
+          cs.map((x) =>
+            x.id === id
+              ? {
+                  ...x,
+                  msgs: msgs.map((m) => ({
+                    id: m.id,
+                    role: m.role === "user" ? ("user" as const) : ("sid" as const),
+                    mode: (m.mode === "registrar" ? "registrar" : "perguntar") as SidMode,
+                    text: m.content,
+                  })),
+                }
+              : x,
+          ),
+        );
+      })
+      .catch(() => toast.error("Não foi possível abrir a conversa."));
+  };
   useEffect(() => {
     const ta = taRef.current;
     if (!ta) return;
@@ -245,11 +283,13 @@ function SidPage() {
       return p.filter((x) => x.id !== id);
     });
 
-  const send = (override?: string) => {
+  const [sending, setSending] = useState(false);
+
+  const send = async (override?: string) => {
     const text = (override ?? input).trim();
     if (!text && pending.length === 0) return;
+    if (sending) return;
     const body = text || "(somente anexos)";
-    const reply = buildDemoReply(mode, body, pending, peopleService.list());
     const userMsg: Msg = {
       id: crypto.randomUUID(),
       role: "user",
@@ -258,29 +298,65 @@ function SidPage() {
       viaVoice: fromVoice,
       attachments: pending,
     };
-    const sidMsg: Msg = {
-      id: crypto.randomUUID(),
-      role: "sid",
-      mode,
-      text: reply.interpretation,
-      reply,
-    };
+    const history = conv.msgs.slice(-12).map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.text,
+    }));
     setConvs((cs) =>
       cs.map((c) =>
         c.id === active
-          ? {
-              ...c,
-              title: c.msgs.length ? c.title : body.slice(0, 40),
-              msgs: [...c.msgs, userMsg, sidMsg],
-            }
+          ? { ...c, title: c.msgs.length ? c.title : body.slice(0, 40), msgs: [...c.msgs, userMsg] }
           : c,
       ),
     );
     setInput("");
     setPending([]);
     setFromVoice(false);
-    if (autoSpeak) speak(sidMsg.id, reply.interpretation);
-    taRef.current?.focus();
+    setSending(true);
+    try {
+      const res = await askSid({
+        data: {
+          conversationId: isUuid(active) ? active : null,
+          mode,
+          question: body,
+          history,
+        },
+      });
+      const sidMsg: Msg = { id: crypto.randomUUID(), role: "sid", mode, text: res.answer };
+      setConvs((cs) =>
+        cs.map((c) =>
+          c.id === active
+            ? { ...c, id: res.conversationId, msgs: [...c.msgs, sidMsg] }
+            : c,
+        ),
+      );
+      if (!isUuid(active)) setActive(res.conversationId);
+      if (autoSpeak) speak(sidMsg.id, res.answer);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao falar com o SID.";
+      toast.error(msg);
+      setConvs((cs) =>
+        cs.map((c) =>
+          c.id === active
+            ? {
+                ...c,
+                msgs: [
+                  ...c.msgs,
+                  {
+                    id: crypto.randomUUID(),
+                    role: "sid" as const,
+                    mode,
+                    text: `Não consegui responder agora: ${msg}`,
+                  },
+                ],
+              }
+            : c,
+        ),
+      );
+    } finally {
+      setSending(false);
+      taRef.current?.focus();
+    }
   };
 
   const setActionStatus = (msgId: string, actionId: string, status: "aprovada" | "descartada") => {
@@ -325,10 +401,7 @@ function SidPage() {
         {convs.map((c) => (
           <li key={c.id}>
             <button
-              onClick={() => {
-                setActive(c.id);
-                setHistoryOpen(false);
-              }}
+              onClick={() => openConv(c.id)}
               aria-current={c.id === active}
               className={cn(
                 "flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm text-areia hover:bg-secondary focus-visible:bg-secondary",
@@ -345,8 +418,7 @@ function SidPage() {
         ))}
       </ul>
       <p className="mt-3 flex items-center gap-1.5 px-1 text-[11px] text-subtle">
-        <FlaskConical className="h-3 w-3" />
-        Histórico só nesta sessão. Nada é salvo.
+        Conversas salvas na sua conta, visíveis só para você.
       </p>
     </div>
   );
@@ -378,9 +450,8 @@ function SidPage() {
           <SeedLogo className="hidden h-8 w-8 sm:block" />
           <div className="min-w-0">
             <h1 className="truncate text-base font-semibold">SID</h1>
-            <p className="flex items-center gap-1 text-[11px] text-warning">
-              <FlaskConical className="h-3 w-3" aria-hidden />
-              Demonstração · sem IA conectada
+            <p className="flex items-center gap-1 text-[11px] text-primary">
+              IA conectada · responde com os seus dados
             </p>
           </div>
           <div
@@ -739,7 +810,7 @@ function SidPage() {
                     size="icon"
                     className="h-10 w-10 rounded-full"
                     aria-label="Enviar"
-                    disabled={!input.trim() && pending.length === 0}
+                    disabled={sending || (!input.trim() && pending.length === 0)}
                     onClick={(e) => {
                       e.stopPropagation();
                       send();
@@ -751,7 +822,8 @@ function SidPage() {
               </div>
             </div>
             <p className="mt-1.5 text-center text-[10.5px] text-subtle">
-              Demonstração: nada é enviado a serviços externos nem salvo.
+              O SID responde com IA usando apenas os dados que você tem permissão de ver.
+              Anexos ainda não são analisados pela IA.
             </p>
           </div>
         </div>

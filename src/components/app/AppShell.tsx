@@ -113,7 +113,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             Modo misto
           </div>
           <p className="mt-1 text-muted-foreground">
-            Pessoas e Tarefas usam dados reais. Demais telas ainda são demonstração.
+            Pessoas, Tarefas, SID, Agenda e Captura usam dados reais. Oportunidades, Projetos, Mapa
+            e Relatórios ainda são demonstração.
           </p>
         </div>
       </aside>
@@ -123,7 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           role="status"
           className="bg-warning/10 px-4 py-1.5 text-center text-[11px] font-medium text-warning"
         >
-          Pessoas e Tarefas: dados reais · demais telas: demonstração com dados fictícios
+          Dados reais: Pessoas, Tarefas, SID, Agenda e Captura · demonstração: Oportunidades, Projetos, Mapa e Relatórios
         </div>
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur lg:px-7">
           <button

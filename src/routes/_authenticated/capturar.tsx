@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PageHeader, Panel, DemoNotice, EmptyState } from "@/components/app/ui-bits";
+import { liveCaptures } from "@/services/live";
 import type { CaptureKind, CaptureStatus } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
@@ -58,20 +59,23 @@ export const Route = createFileRoute("/_authenticated/capturar")({
 
 interface Item {
   id: string;
+  dbId?: string;
   kind: CaptureKind;
   label: string;
   status: CaptureStatus;
   url?: string;
   mime?: string;
+  file?: File | Blob;
+  note?: string;
 }
 
 const STATUS: Record<CaptureStatus, { label: string; cls: string }> = {
   esperando: { label: "Esperando envio", cls: "text-muted-foreground" },
   gravando: { label: "Gravando", cls: "text-destructive" },
-  enviando: { label: "Enviando (simulado)", cls: "text-info" },
-  processando: { label: "Processando (simulado)", cls: "text-info" },
-  revisar: { label: "Precisa revisar", cls: "text-warning" },
-  concluido: { label: "Concluído (demo, não salvo)", cls: "text-success" },
+  enviando: { label: "Enviando", cls: "text-info" },
+  processando: { label: "Processando", cls: "text-info" },
+  revisar: { label: "Enviado · aguardando análise", cls: "text-warning" },
+  concluido: { label: "Concluído", cls: "text-success" },
   erro: { label: "Falha no envio", cls: "text-destructive" },
 };
 
@@ -96,13 +100,21 @@ function CapturePage() {
     setItems((x) => [{ ...it, id: crypto.randomUUID(), status: "esperando" }, ...x]);
   const setStatus = (id: string, status: CaptureStatus) =>
     setItems((x) => x.map((i) => (i.id === id ? { ...i, status } : i)));
-  const send = (id: string) => {
+  const send = async (id: string) => {
+    const it = items.find((x) => x.id === id);
+    if (!it) return;
     setStatus(id, "enviando");
-    setTimeout(() => {
-      if (!navigator.onLine) return setStatus(id, "erro");
-      setStatus(id, "processando");
-      setTimeout(() => setStatus(id, "revisar"), 1500);
-    }, 1200);
+    try {
+      const saved =
+        it.kind === "nota"
+          ? await liveCaptures.createNote(it.note ?? "", it.label)
+          : await liveCaptures.createFile(it.file!, it.kind, it.label, it.mime ?? "application/octet-stream");
+      setItems((x) => x.map((y) => (y.id === id ? { ...y, dbId: saved.id, status: "revisar" } : y)));
+      toast.success("Captura salva no seu espaço privado.");
+    } catch (e) {
+      setStatus(id, "erro");
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar a captura.");
+    }
   };
 
   return (
@@ -112,8 +124,9 @@ function CapturePage() {
       </PageHeader>
       <div className="mb-4">
         <DemoNotice>
-          Sem backend conectado: envio e processamento são <b>simulados localmente</b>. Nenhum
-          arquivo sai do seu aparelho e nada é transcrito por IA.
+          As capturas são <b>salvas de verdade</b> no seu espaço privado. A análise por IA
+          (transcrição, resumo e sugestões) ainda não está conectada — por isso tudo chega como
+          “aguardando análise”.
         </DemoNotice>
       </div>
 
@@ -139,12 +152,13 @@ function CapturePage() {
         <div>
           {tab === "audio" && (
             <AudioRecorder
-              onDone={(url, mime) =>
+              onDone={(url, mime, blob) =>
                 add({
                   kind: "audio",
                   label: `Áudio gravado ${new Date().toLocaleTimeString("pt-BR")}`,
                   url,
                   mime,
+                  file: blob,
                 })
               }
             />
@@ -169,7 +183,7 @@ function CapturePage() {
             />
           )}
           {tab === "nota" && (
-            <NoteForm onSave={(t) => add({ kind: "nota", label: t.slice(0, 60) })} />
+            <NoteForm onSave={(t) => add({ kind: "nota", label: t.slice(0, 60), note: t })} />
           )}
           {tab === "plaud" && <PlaudPanel onPick={add} />}
         </div>
@@ -216,12 +230,12 @@ function CapturePage() {
                   )}
                   <div className="mt-2 flex gap-2">
                     {it.status === "esperando" && (
-                      <Button size="sm" onClick={() => send(it.id)}>
-                        Enviar (simular)
+                      <Button size="sm" onClick={() => void send(it.id)}>
+                        Enviar
                       </Button>
                     )}
                     {it.status === "erro" && (
-                      <Button size="sm" variant="secondary" onClick={() => send(it.id)}>
+                      <Button size="sm" variant="secondary" onClick={() => void send(it.id)}>
                         <RotateCcw className="h-3 w-3" />
                         Tentar de novo
                       </Button>
@@ -288,9 +302,10 @@ function CapturePage() {
             </Button>
             <Button
               onClick={() => {
+                if (review?.dbId) void liveCaptures.markReviewed(review.dbId);
                 if (review) setStatus(review.id, "concluido");
                 setReview(null);
-                toast.warning("Demonstração: marcado como concluído só nesta tela.");
+                toast.success("Marcado como revisado.");
               }}
             >
               Marcar como revisado
@@ -302,7 +317,7 @@ function CapturePage() {
   );
 }
 
-function AudioRecorder({ onDone }: { onDone: (url: string, mime: string) => void }) {
+function AudioRecorder({ onDone }: { onDone: (url: string, mime: string, blob: Blob) => void }) {
   const [state, setState] = useState<"idle" | "pedindo" | "gravando" | "indisponivel" | "negado">(
     "idle",
   );
@@ -332,7 +347,7 @@ function AudioRecorder({ onDone }: { onDone: (url: string, mime: string) => void
         stream.getTracks().forEach((t) => t.stop());
         if (!discard.current) {
           const b = new Blob(chunks.current, { type: r.mimeType });
-          onDone(URL.createObjectURL(b), r.mimeType || "audio/webm");
+          onDone(URL.createObjectURL(b), r.mimeType || "audio/webm", b);
         }
         setState("idle");
         setSecs(0);
@@ -459,7 +474,7 @@ function FilePicker({
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (!f) return;
-            onPick({ kind, label: f.name, url: URL.createObjectURL(f), mime: f.type });
+            onPick({ kind, label: f.name, url: URL.createObjectURL(f), mime: f.type, file: f });
             e.target.value = "";
           }}
         />
@@ -521,6 +536,7 @@ function PlaudPanel({ onPick }: { onPick: (i: Omit<Item, "id" | "status">) => vo
                 label: `PLAUD (manual): ${f.name}`,
                 url: URL.createObjectURL(f),
                 mime: f.type,
+                file: f,
               });
           }}
         />

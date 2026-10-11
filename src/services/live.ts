@@ -150,5 +150,110 @@ export const liveTasks = {
   },
 };
 
+export interface AgendaItem {
+  id: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  kind: "prazo" | "followup";
+  detail: string;
+  done: boolean;
+}
+
+export const liveAgenda = {
+  async list(): Promise<AgendaItem[]> {
+    const [tasks, followups, people] = await Promise.all([
+      supabase.from("tasks").select("id,title,due_date,status,priority").not("due_date", "is", null),
+      supabase.from("followups").select("id,reason,due_date,done_at,person_id").not("due_date", "is", null),
+      supabase.from("people").select("id,name"),
+    ]);
+    const names = new Map((people.data ?? []).map((p) => [p.id, p.name]));
+    const items: AgendaItem[] = [];
+    for (const t of tasks.data ?? []) {
+      if (!t.due_date) continue;
+      items.push({
+        id: `t-${t.id}`,
+        date: t.due_date,
+        title: t.title,
+        kind: "prazo",
+        detail: `Tarefa · prioridade ${t.priority}`,
+        done: t.status === "feito",
+      });
+    }
+    for (const f of followups.data ?? []) {
+      if (!f.due_date) continue;
+      items.push({
+        id: `f-${f.id}`,
+        date: f.due_date,
+        title: f.reason ?? "Follow-up",
+        kind: "followup",
+        detail: `Follow-up · ${names.get(f.person_id) ?? "pessoa"}`,
+        done: !!f.done_at,
+      });
+    }
+    return items;
+  },
+};
+
+export const liveCaptures = {
+  async createNote(note: string, title: string) {
+    const owner_id = await uid();
+    return must(
+      await supabase
+        .from("captures")
+        .insert({
+          owner_id,
+          visibility: "privado",
+          source: "captura",
+          kind: "nota",
+          status: "revisar",
+          title,
+          note,
+        })
+        .select()
+        .single(),
+    );
+  },
+  async createFile(file: File | Blob, kind: string, label: string, mime: string) {
+    const owner_id = await uid();
+    const capture = must(
+      await supabase
+        .from("captures")
+        .insert({
+          owner_id,
+          visibility: "privado",
+          source: "captura",
+          kind,
+          status: "enviando",
+          title: label,
+          mime,
+          size_bytes: file.size,
+        })
+        .select()
+        .single(),
+    );
+    const ext =
+      file instanceof File && file.name.includes(".")
+        ? file.name.split(".").pop()
+        : (mime.split("/")[1]?.split(";")[0] ?? "bin");
+    const path = `${owner_id}/${capture.id}/arquivo.${ext}`;
+    const up = await supabase.storage.from("captures").upload(path, file, { contentType: mime });
+    if (up.error) {
+      await supabase.from("captures").update({ status: "erro", error: up.error.message }).eq("id", capture.id);
+      throw new Error(up.error.message);
+    }
+    return must(
+      await supabase
+        .from("captures")
+        .update({ storage_path: path, status: "revisar" })
+        .eq("id", capture.id)
+        .select()
+        .single(),
+    );
+  },
+  async markReviewed(id: string) {
+    must(await supabase.from("captures").update({ status: "concluido" }).eq("id", id));
+  },
+};
+
 export const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—";

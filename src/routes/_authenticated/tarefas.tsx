@@ -1,33 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PageHeader, PriorityBadge, DemoNotice } from "@/components/app/ui-bits";
-import { tasksService, peopleService } from "@/services";
-import type { Priority, Task, TaskStatus } from "@/types/domain";
-import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader, PriorityBadge, EmptyState } from "@/components/app/ui-bits";
+import { liveTasks, livePeople, fmtDate } from "@/services/live";
+import type { Priority, TaskStatus } from "@/types/domain";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
-  head: () => pageHead("Tarefas", "Kanban de tarefas e follow-ups vinculados a pessoas."),
+  head: () => pageHead("Tarefas", "Kanban de tarefas e follow-ups."),
   component: TasksPage,
 });
 
@@ -37,205 +24,129 @@ const COLS: { key: TaskStatus; label: string }[] = [
   { key: "aguardando", label: "Aguardando" },
   { key: "feito", label: "Feito" },
 ];
-const FILTERS = ["Todas", "Minhas", "Equipe", "Atrasadas"] as const;
 
 function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(tasksService.list());
-  const [f, setF] = useState<(typeof FILTERS)[number]>("Todas");
+  const qc = useQueryClient();
+  const tasks = useQuery({ queryKey: ["tasks"], queryFn: liveTasks.list });
+  const people = useQuery({ queryKey: ["people"], queryFn: livePeople.list });
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [prio, setPrio] = useState<Priority>("media");
-  const [due, setDue] = useState("");
-
-  const visible = tasks.filter(
-    (t) =>
-      f === "Todas" ||
-      (f === "Minhas" && t.owner === "Você") ||
-      (f === "Equipe" && t.owner === "Equipe") ||
-      (f === "Atrasadas" && t.late),
-  );
-  const move = (id: string, dir: -1 | 1) =>
-    setTasks((ts) =>
-      ts.map((t) => {
-        if (t.id !== id) return t;
-        const i = COLS.findIndex((c) => c.key === t.status) + dir;
-        return COLS[i] ? { ...t, status: COLS[i].key } : t;
-      }),
-    );
+  const inv = () => qc.invalidateQueries({ queryKey: ["tasks"] });
+  const move = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => liveTasks.setStatus(id, status),
+    onSuccess: inv,
+    onError: (e) => toast.error(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: liveTasks.remove,
+    onSuccess: () => { inv(); toast.success("Tarefa excluída."); },
+    onError: (e) => toast.error(e.message),
+  });
+  const create = useMutation({
+    mutationFn: liveTasks.create,
+    onSuccess: () => { inv(); setOpen(false); toast.success("Tarefa criada."); },
+    onError: (e) => toast.error(e.message),
+  });
+  const nameOf = (id: string | null) => people.data?.find((p) => p.id === id)?.name;
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="mx-auto max-w-7xl">
-      <PageHeader
-        eyebrow="Execução"
-        title="Tarefas"
-        actions={
-          <Button className="h-11" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Nova tarefa
-          </Button>
-        }
-      />
-      <div className="mb-3">
-        <DemoNotice>Tarefas fictícias. Mover ou criar altera só esta tela.</DemoNotice>
-      </div>
-      <div className="mb-4 flex gap-2 overflow-x-auto">
-        {FILTERS.map((x) => (
-          <button
-            key={x}
-            aria-pressed={f === x}
-            onClick={() => setF(x)}
-            className={cn(
-              "min-h-9 whitespace-nowrap rounded-full border px-3 text-xs font-medium text-areia",
-              f === x && "border-lime-line bg-lime-deep text-primary",
-            )}
-          >
-            {x}
-          </button>
-        ))}
-      </div>
-      <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:grid-cols-4 lg:px-0">
-        {COLS.map((c) => {
-          const list = visible.filter((t) => t.status === c.key);
-          return (
-            <section
-              key={c.key}
-              className="w-[82vw] shrink-0 snap-start rounded-2xl border bg-card p-3 sm:w-80 lg:w-auto"
-              aria-label={c.label}
-            >
-              <h2 className="flex justify-between px-1 pb-3 text-[11px] font-semibold uppercase tracking-wider text-areia">
-                {c.label}
-                <span>{list.length}</span>
-              </h2>
-              {list.length === 0 && (
-                <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">
-                  Vazio
-                </p>
-              )}
-              <ul className="space-y-2">
-                {list.map((t) => {
-                  const p = t.personId ? peopleService.get(t.personId) : undefined;
-                  return (
-                    <li key={t.id} className="rounded-xl border bg-secondary p-3">
-                      <p className="text-sm font-medium">{t.title}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <PriorityBadge p={t.priority} />
-                        <span className={cn(t.late && "font-semibold text-destructive")}>
-                          {t.due}
-                          {t.late && " · atrasada"}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-subtle">
-                        {t.owner}
-                        {p && ` · ${p.name}`}
-                      </p>
-                      <div className="mt-2 flex justify-end gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9"
-                          aria-label="Mover para a esquerda"
-                          disabled={c.key === "a_fazer"}
-                          onClick={() => move(t.id, -1)}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9"
-                          aria-label="Mover para a direita"
-                          disabled={c.key === "feito"}
-                          onClick={() => move(t.id, 1)}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          );
-        })}
-      </div>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova tarefa</DialogTitle>
-            <DialogDescription>Demonstração: não será salva.</DialogDescription>
-          </DialogHeader>
-          <form
-            id="nt"
-            className="grid gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!title.trim()) {
-                toast.error("Informe o título.");
-                return;
-              }
-              setTasks((t) => [
-                ...t,
-                {
-                  id: `t${Date.now()}`,
-                  title,
-                  priority: prio,
-                  due: due ? due.split("-").reverse().slice(0, 2).join("/") : "sem prazo",
-                  status: "a_fazer",
-                  owner: "Você",
-                },
-              ]);
-              setTitle("");
-              setDue("");
-              setOpen(false);
-              toast.warning("Demonstração: tarefa criada só nesta tela.");
-            }}
-          >
-            <div className="grid gap-1.5">
-              <Label htmlFor="tt">Título</Label>
-              <Input
-                id="tt"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="h-11"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Prioridade</Label>
-                <Select value={prio} onValueChange={(v) => setPrio(v as Priority)}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="media">Média</SelectItem>
-                    <SelectItem value="baixa">Baixa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="td">Prazo</Label>
-                <Input
-                  id="td"
-                  type="date"
-                  value={due}
-                  onChange={(e) => setDue(e.target.value)}
-                  className="h-11"
-                />
-              </div>
-            </div>
-          </form>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" form="nt">
-              Criar (demo)
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PageHeader eyebrow="Execução" title="Tarefas" actions={<Button className="h-11" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Nova tarefa</Button>}>
+        Mova as tarefas entre colunas. Tudo é salvo no banco.
+      </PageHeader>
+      {tasks.isLoading ? (
+        <p className="p-6 text-center text-sm text-muted-foreground">Carregando…</p>
+      ) : tasks.isError ? (
+        <EmptyState title="Não foi possível carregar" text={tasks.error.message} />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {COLS.map((c, ci) => {
+            const items = (tasks.data ?? []).filter((t) => t.status === c.key);
+            return (
+              <section key={c.key} className="rounded-2xl border bg-card p-3">
+                <h2 className="mb-2 flex items-center justify-between text-sm font-semibold">
+                  {c.label} <span className="text-xs text-muted-foreground">{items.length}</span>
+                </h2>
+                <ul className="space-y-2">
+                  {items.map((t) => {
+                    const late = t.due_date && t.due_date < today && t.status !== "feito";
+                    return (
+                      <li key={t.id} className="rounded-xl border bg-background p-3">
+                        <p className="text-sm font-medium">{t.title}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                          <PriorityBadge p={t.priority} />
+                          <span className={late ? "text-destructive" : ""}>{t.due_date ? fmtDate(t.due_date) : "Sem prazo"}</span>
+                          {t.person_id && nameOf(t.person_id) && (
+                            <Link to="/pessoas/$id" params={{ id: t.person_id }} className="underline">{nameOf(t.person_id)}</Link>
+                          )}
+                        </div>
+                        <div className="mt-2 flex gap-1">
+                          <Button size="icon" variant="ghost" aria-label="Mover para a coluna anterior" disabled={ci === 0} onClick={() => move.mutate({ id: t.id, status: COLS[ci - 1].key })}><ChevronLeft className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" aria-label="Mover para a próxima coluna" disabled={ci === COLS.length - 1} onClick={() => move.mutate({ id: t.id, status: COLS[ci + 1].key })}><ChevronRight className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" className="ml-auto" aria-label="Excluir tarefa" onClick={() => confirm("Excluir esta tarefa?") && remove.mutate(t.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                  {items.length === 0 && <li className="p-2 text-xs text-subtle">Vazio</li>}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
+      <NewTask open={open} onOpenChange={setOpen} people={people.data ?? []} busy={create.isPending} onCreate={(v) => create.mutate(v)} />
     </div>
+  );
+}
+
+function NewTask({ open, onOpenChange, people, onCreate, busy }: {
+  open: boolean; onOpenChange: (v: boolean) => void; busy: boolean;
+  people: { id: string; name: string }[];
+  onCreate: (v: Parameters<typeof liveTasks.create>[0]) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [due, setDue] = useState("");
+  const [prio, setPrio] = useState<Priority>("media");
+  const [person, setPerson] = useState("none");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nova tarefa</DialogTitle>
+          <DialogDescription>Você será o responsável. Vincule uma pessoa se quiser.</DialogDescription>
+        </DialogHeader>
+        <form id="nt" className="grid gap-3" onSubmit={(e) => {
+          e.preventDefault();
+          if (!title.trim()) return toast.error("Informe o título.");
+          onCreate({ title: title.trim(), due_date: due || null, priority: prio, person_id: person === "none" ? null : person });
+          setTitle(""); setDue("");
+        }}>
+          <div className="grid gap-1.5"><Label htmlFor="tt">Título</Label><Input id="tt" value={title} onChange={(e) => setTitle(e.target.value)} className="h-11" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5"><Label htmlFor="td">Prazo</Label><Input id="td" type="date" value={due} onChange={(e) => setDue(e.target.value)} className="h-11" /></div>
+            <div className="grid gap-1.5"><Label>Prioridade</Label>
+              <Select value={prio} onValueChange={(v) => setPrio(v as Priority)}>
+                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="alta">Alta</SelectItem><SelectItem value="media">Média</SelectItem><SelectItem value="baixa">Baixa</SelectItem></SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-1.5"><Label>Pessoa</Label>
+            <Select value={person} onValueChange={setPerson}>
+              <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                {people.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </form>
+        <DialogFooter>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button type="submit" form="nt" disabled={busy}>Criar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

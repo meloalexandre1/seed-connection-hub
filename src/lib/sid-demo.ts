@@ -76,11 +76,20 @@ export function buildDemoReply(
     original: text,
     interpretation:
       "Extração automática indisponível no modo demonstração. Com o backend, o SID identificaria pessoas, necessidades, compromissos e prazos — separando fato de inferência.",
-    recommendation: "Revise o texto original e crie o registro manualmente quando o backend estiver conectado.",
+    recommendation:
+      "Revise o texto original e crie o registro manualmente quando o backend estiver conectado.",
     refs,
     actions: [
       { id: "a1", label: "Criar captura com este texto e anexos", status: "pendente" },
-      ...(refs.length ? [{ id: "a2", label: `Vincular a ${refs.map((r) => r.name).join(", ")}`, status: "pendente" as const }] : []),
+      ...(refs.length
+        ? [
+            {
+              id: "a2",
+              label: `Vincular a ${refs.map((r) => r.name).join(", ")}`,
+              status: "pendente" as const,
+            },
+          ]
+        : []),
     ],
     attachmentNote,
   };

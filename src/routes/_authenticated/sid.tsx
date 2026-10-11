@@ -401,10 +401,7 @@ function SidPage() {
         {convs.map((c) => (
           <li key={c.id}>
             <button
-              onClick={() => {
-                setActive(c.id);
-                setHistoryOpen(false);
-              }}
+              onClick={() => openConv(c.id)}
               aria-current={c.id === active}
               className={cn(
                 "flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm text-areia hover:bg-secondary focus-visible:bg-secondary",

@@ -37,6 +37,7 @@ const SECONDARY = [
   { to: "/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/acesso", label: "Acesso e equipe", icon: Users },
 ] as const;
 
 const linkCls =

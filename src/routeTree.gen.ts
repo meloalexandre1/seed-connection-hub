@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAcessoRouteImport } from './routes/_authenticated/acesso'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedCapturarRouteImport } from './routes/_authenticated/capturar'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -37,6 +38,11 @@ const AuthRoute = AuthRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAcessoRoute = AuthenticatedAcessoRouteImport.update({
+  id: '/acesso',
+  path: '/acesso',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
@@ -107,6 +113,7 @@ const AuthenticatedPessoasImportarRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/acesso': typeof AuthenticatedAcessoRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/capturar': typeof AuthenticatedCapturarRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/acesso': typeof AuthenticatedAcessoRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/capturar': typeof AuthenticatedCapturarRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/acesso': typeof AuthenticatedAcessoRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/capturar': typeof AuthenticatedCapturarRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/acesso'
     | '/agenda'
     | '/capturar'
     | '/configuracoes'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/acesso'
     | '/agenda'
     | '/capturar'
     | '/configuracoes'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/acesso'
     | '/_authenticated/agenda'
     | '/_authenticated/capturar'
     | '/_authenticated/configuracoes'
@@ -232,6 +244,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/acesso': {
+      id: '/_authenticated/acesso'
+      path: '/acesso'
+      fullPath: '/acesso'
+      preLoaderRoute: typeof AuthenticatedAcessoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/agenda': {
@@ -322,6 +341,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAcessoRoute: typeof AuthenticatedAcessoRoute
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedCapturarRoute: typeof AuthenticatedCapturarRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -338,6 +358,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAcessoRoute: AuthenticatedAcessoRoute,
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedCapturarRoute: AuthenticatedCapturarRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,

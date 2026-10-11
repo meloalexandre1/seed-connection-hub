@@ -1,5 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { meService } from "@/services/live";
 import {
   Home,
   Users,
@@ -15,6 +18,7 @@ import {
   Menu,
   Search,
   FlaskConical,
+  LogOut,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SeedLogo } from "./ui-bits";
@@ -92,6 +96,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const me = useQuery({ queryKey: ["me"], queryFn: meService.get });
+  const roleLabel = { admin: "Administrador", gestor: "Gestor", operacional: "Operacional" } as const;
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
@@ -103,10 +109,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mt-auto rounded-xl border bg-secondary p-3 text-xs">
           <div className="flex items-center gap-2 font-semibold text-warning">
             <FlaskConical className="h-4 w-4" aria-hidden />
-            Modo demonstração
+            Modo misto
           </div>
           <p className="mt-1 text-muted-foreground">
-            Sem backend conectado. Dados fictícios; nada é salvo.
+            Pessoas e Tarefas usam dados reais. Demais telas ainda são demonstração.
           </p>
         </div>
       </aside>
@@ -116,7 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           role="status"
           className="bg-warning/10 px-4 py-1.5 text-center text-[11px] font-medium text-warning"
         >
-          DEMONSTRAÇÃO · dados fictícios · ações não são salvas · Supabase ainda não conectado
+          Pessoas e Tarefas: dados reais · demais telas: demonstração com dados fictícios
         </div>
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur lg:px-7">
           <button
@@ -155,15 +161,30 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label="Perfil e configurações"
           >
             <div className="grid h-9 w-9 place-items-center rounded-full bg-n3 text-xs font-bold text-primary-foreground">
-              P
+              {(me.data?.email[0] ?? "?").toUpperCase()}
             </div>
             <div className="hidden text-xs leading-tight md:block">
-              <b className="block text-sm">Proprietário</b>
-              <span className="text-muted-foreground">Administrador (demo)</span>
+              <b className="block max-w-40 truncate text-sm">{me.data?.email ?? "…"}</b>
+              <span className="text-muted-foreground">
+                {me.data?.role ? roleLabel[me.data.role] : "Sem papel atribuído"}
+              </span>
             </div>
           </Link>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="grid h-11 w-11 place-items-center rounded-xl hover:bg-secondary"
+            aria-label="Sair"
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </header>
 
+        {me.data && !me.data.role && (
+          <div role="alert" className="bg-destructive/10 px-4 py-2 text-center text-xs text-destructive">
+            Sua conta ainda não tem papel (admin/gestor/operacional). O banco bloqueia leituras e gravações até o administrador atribuir um.
+          </div>
+        )}
         <main className="min-w-0 flex-1 overflow-x-clip px-4 pb-28 pt-5 lg:px-7 lg:pb-10">{children}</main>
       </div>
 

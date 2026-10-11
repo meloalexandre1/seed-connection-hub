@@ -383,8 +383,7 @@ function SidPage() {
         ))}
       </ul>
       <p className="mt-3 flex items-center gap-1.5 px-1 text-[11px] text-subtle">
-        <FlaskConical className="h-3 w-3" />
-        Histórico só nesta sessão. Nada é salvo.
+        Conversas salvas na sua conta, visíveis só para você.
       </p>
     </div>
   );
@@ -416,9 +415,8 @@ function SidPage() {
           <SeedLogo className="hidden h-8 w-8 sm:block" />
           <div className="min-w-0">
             <h1 className="truncate text-base font-semibold">SID</h1>
-            <p className="flex items-center gap-1 text-[11px] text-warning">
-              <FlaskConical className="h-3 w-3" aria-hidden />
-              Demonstração · sem IA conectada
+            <p className="flex items-center gap-1 text-[11px] text-primary">
+              IA conectada · responde com os seus dados
             </p>
           </div>
           <div
@@ -777,7 +775,7 @@ function SidPage() {
                     size="icon"
                     className="h-10 w-10 rounded-full"
                     aria-label="Enviar"
-                    disabled={!input.trim() && pending.length === 0}
+                    disabled={sending || (!input.trim() && pending.length === 0)}
                     onClick={(e) => {
                       e.stopPropagation();
                       send();
@@ -789,7 +787,8 @@ function SidPage() {
               </div>
             </div>
             <p className="mt-1.5 text-center text-[10.5px] text-subtle">
-              Demonstração: nada é enviado a serviços externos nem salvo.
+              O SID responde com IA usando apenas os dados que você tem permissão de ver.
+              Anexos ainda não são analisados pela IA.
             </p>
           </div>
         </div>

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          at: string
+          changed_columns: string[] | null
+          id: number
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          at?: string
+          changed_columns?: string[] | null
+          id?: never
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          at?: string
+          changed_columns?: string[] | null
+          id?: never
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       captures: {
         Row: {
           captured_at: string | null
@@ -212,6 +242,128 @@ export type Database = {
           },
         ]
       }
+      followups: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          created_by: string
+          done_at: string | null
+          due_date: string | null
+          id: string
+          person_id: string
+          reason: string | null
+          result: string | null
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          created_by?: string
+          done_at?: string | null
+          due_date?: string | null
+          id?: string
+          person_id: string
+          reason?: string | null
+          result?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          created_by?: string
+          done_at?: string | null
+          due_date?: string | null
+          id?: string
+          person_id?: string
+          reason?: string | null
+          result?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followups_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_rows: {
+        Row: {
+          action: string | null
+          created_at: string
+          id: string
+          import_id: string
+          person_id: string | null
+          raw: Json
+          result: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          id?: string
+          import_id: string
+          person_id?: string | null
+          raw: Json
+          result?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          id?: string
+          import_id?: string
+          person_id?: string | null
+          raw?: Json
+          result?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_rows_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imports: {
+        Row: {
+          created_at: string
+          file_name: string | null
+          id: string
+          owner_id: string
+          row_count: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          owner_id?: string
+          row_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          owner_id?: string
+          row_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interactions: {
         Row: {
           author_id: string
@@ -328,6 +480,111 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "sid_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunities: {
+        Row: {
+          created_at: string
+          decision: string | null
+          id: string
+          need: string | null
+          owner_id: string
+          project_id: string | null
+          recommendation: string | null
+          resources: string | null
+          review_at: string | null
+          scores: Json
+          source: Database["public"]["Enums"]["source_kind"]
+          source_capture_id: string | null
+          status: string
+          third_party: string | null
+          title: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility"]
+        }
+        Insert: {
+          created_at?: string
+          decision?: string | null
+          id?: string
+          need?: string | null
+          owner_id?: string
+          project_id?: string | null
+          recommendation?: string | null
+          resources?: string | null
+          review_at?: string | null
+          scores?: Json
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_capture_id?: string | null
+          status?: string
+          third_party?: string | null
+          title: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Update: {
+          created_at?: string
+          decision?: string | null
+          id?: string
+          need?: string | null
+          owner_id?: string
+          project_id?: string | null
+          recommendation?: string | null
+          resources?: string | null
+          review_at?: string | null
+          scores?: Json
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_capture_id?: string | null
+          status?: string
+          third_party?: string | null
+          title?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_source_capture_id_fkey"
+            columns: ["source_capture_id"]
+            isOneToOne: false
+            referencedRelation: "captures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunity_people: {
+        Row: {
+          opportunity_id: string
+          person_id: string
+        }
+        Insert: {
+          opportunity_id: string
+          person_id: string
+        }
+        Update: {
+          opportunity_id?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_people_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_people_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -698,6 +955,92 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "sid_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee_id: string | null
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          opportunity_id: string | null
+          owner_id: string
+          person_id: string | null
+          priority: Database["public"]["Enums"]["priority"]
+          project_id: string | null
+          source: Database["public"]["Enums"]["source_kind"]
+          source_message_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility"]
+        }
+        Insert: {
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          opportunity_id?: string | null
+          owner_id?: string
+          person_id?: string | null
+          priority?: Database["public"]["Enums"]["priority"]
+          project_id?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_message_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Update: {
+          assignee_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          opportunity_id?: string | null
+          owner_id?: string
+          person_id?: string | null
+          priority?: Database["public"]["Enums"]["priority"]
+          project_id?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          source_message_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "sid_messages"
             referencedColumns: ["id"]
           },
         ]

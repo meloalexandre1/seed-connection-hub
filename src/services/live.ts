@@ -150,5 +150,49 @@ export const liveTasks = {
   },
 };
 
+export interface AgendaItem {
+  id: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  kind: "prazo" | "followup";
+  detail: string;
+  done: boolean;
+}
+
+export const liveAgenda = {
+  async list(): Promise<AgendaItem[]> {
+    const [tasks, followups, people] = await Promise.all([
+      supabase.from("tasks").select("id,title,due_date,status,priority").not("due_date", "is", null),
+      supabase.from("followups").select("id,reason,due_date,done_at,person_id").not("due_date", "is", null),
+      supabase.from("people").select("id,name"),
+    ]);
+    const names = new Map((people.data ?? []).map((p) => [p.id, p.name]));
+    const items: AgendaItem[] = [];
+    for (const t of tasks.data ?? []) {
+      if (!t.due_date) continue;
+      items.push({
+        id: `t-${t.id}`,
+        date: t.due_date,
+        title: t.title,
+        kind: "prazo",
+        detail: `Tarefa · prioridade ${t.priority}`,
+        done: t.status === "feito",
+      });
+    }
+    for (const f of followups.data ?? []) {
+      if (!f.due_date) continue;
+      items.push({
+        id: `f-${f.id}`,
+        date: f.due_date,
+        title: f.reason ?? "Follow-up",
+        kind: "followup",
+        detail: `Follow-up · ${names.get(f.person_id) ?? "pessoa"}`,
+        done: !!f.done_at,
+      });
+    }
+    return items;
+  },
+};
+
 export const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—";

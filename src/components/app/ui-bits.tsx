@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { FlaskConical, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
+import seedLogoAsset from "@/assets/seed-logo.png.asset.json";
 import { proximityOf } from "@/services";
 import type { Priority, Proximity } from "@/types/domain";
 
@@ -140,23 +141,12 @@ export function Avatar({ name, className }: { name: string; className?: string }
 
 export function SeedLogo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 200 200" className={className} aria-hidden>
-      <g transform="translate(20 20) scale(1.6)">
-        <g className="stroke-foreground" strokeWidth="3.6" fill="none" strokeLinecap="round">
-          <path d="M50 5 Q30 14 22 38 Q16 74 50 95 Q84 74 78 38 Q70 14 50 5" />
-          <line x1="50" y1="60" x2="50" y2="5" />
-          <line x1="50" y1="60" x2="22" y2="38" />
-          <line x1="50" y1="60" x2="78" y2="38" />
-          <line x1="50" y1="60" x2="50" y2="95" />
-        </g>
-        <g className="fill-primary">
-          <circle cx="50" cy="5" r="6.2" />
-          <circle cx="22" cy="38" r="6.2" />
-          <circle cx="78" cy="38" r="6.2" />
-          <circle cx="50" cy="95" r="6.2" />
-          <circle cx="50" cy="60" r="9" />
-        </g>
-      </g>
-    </svg>
+    <img
+      src={seedLogoAsset.url}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={cn("shrink-0 object-contain", className)}
+    />
   );
 }

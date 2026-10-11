@@ -13,8 +13,8 @@ import { pageHead } from "@/lib/seo";
 
 type Modo = "audio" | "arquivo" | "foto" | "nota" | "plaud";
 export const Route = createFileRoute("/capturar")({
-  validateSearch: (s: Record<string, unknown>): { modo?: Modo } => ({
-    modo: ["audio", "arquivo", "foto", "nota", "plaud"].includes(String(s.modo)) ? (s.modo as Modo) : undefined,
+  validateSearch: (s: Record<string, unknown>): { modo?: Modo | undefined } => ({
+    modo: ["audio", "arquivo", "foto", "nota", "plaud"].includes(String(s["modo"])) ? (s["modo"] as Modo) : undefined,
   }),
   head: () => pageHead("Central de Captura", "Grave áudio, fotografe, anexe arquivos, escreva notas e importe materiais."),
   component: CapturePage,

@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/sid")({
-  validateSearch: (s: Record<string, unknown>): { q?: string; voz?: boolean } => ({
-    q: typeof s.q === "string" ? s.q : undefined,
-    voz: s.voz === true || s.voz === "true" ? true : undefined,
+  validateSearch: (s: Record<string, unknown>): { q?: string | undefined; voz?: boolean | undefined } => ({
+    q: typeof s["q"] === "string" ? s["q"] : undefined,
+    voz: s["voz"] === true || s["voz"] === "true" ? true : undefined,
   }),
   head: () => pageHead("SID", "Assistente por texto e voz: perguntar e registrar com revisão."),
   component: SidPage,
@@ -53,9 +53,9 @@ function SidPage() {
     setVoiceErr(null);
     const W = window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
     const Ctor = W.SpeechRecognition ?? W.webkitSpeechRecognition;
-    if (!Ctor) return setVoiceErr("Reconhecimento de voz indisponível neste navegador. Digite a pergunta.");
+    if (!Ctor) { setVoiceErr("Reconhecimento de voz indisponível neste navegador. Digite a pergunta."); return; }
     const r = new Ctor(); r.lang = "pt-BR"; r.interimResults = true; r.continuous = false;
-    r.onresult = (e) => { setInput(Array.from(e.results).map((x) => x[0].transcript).join(" ")); setFromVoice(true); };
+    r.onresult = (e) => { setInput(Array.from(e.results).map((x) => x[0]?.transcript ?? "").join(" ")); setFromVoice(true); };
     r.onerror = () => { setVoiceErr("Não foi possível ouvir. Verifique a permissão do microfone."); setListening(false); };
     r.onend = () => setListening(false);
     recRef.current = r; r.start(); setListening(true);
@@ -63,7 +63,7 @@ function SidPage() {
 
   const send = () => {
     const text = input.trim(); if (!text) return;
-    const refs = peopleService.list().filter((p) => text.toLowerCase().includes(p.name.split(" ")[0].toLowerCase())).map((p) => ({ id: p.id, name: p.name }));
+    const refs = peopleService.list().filter((p) => text.toLowerCase().includes((p.name.split(" ")[0] ?? "").toLowerCase())).map((p) => ({ id: p.id, name: p.name }));
     const reply: Msg = mode === "perguntar"
       ? { role: "sid", mode, refs, text: `Demonstração: o SID ainda não está ligado a um banco de dados nem a um modelo de IA, então não consultou nenhum contato seu.${refs.length ? " Encontrei apenas menções a registros fictícios do modo demo, listados abaixo." : ""} Quando conectado, a resposta virá com fatos, inferências e recomendações separados e com as fontes consultadas. Esta pergunta não criou nenhum registro.` }
       : { role: "sid", mode, refs, proposal: true, text: `Proposta de registro gerada a partir do que você disse. Nada será alterado sem sua revisão. Na demonstração, a aprovação não salva dados.` };

@@ -43,6 +43,13 @@
       "when": 1791691774739,
       "tag": "0005_0006_policies_triggers_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791691785350,
+      "tag": "0006_0007_bootstrap_admin",
+      "breakpoints": true
     }
   ]
 }

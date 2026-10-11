@@ -109,7 +109,7 @@ function NewPersonDialog({ open, onOpenChange, onCreate }: { open: boolean; onOp
         <DialogHeader><DialogTitle>Nova pessoa</DialogTitle><DialogDescription>Cadastro mínimo: nome ou contato. Pode ser enriquecido depois.</DialogDescription></DialogHeader>
         <form id="np" className="grid gap-3" onSubmit={(e) => {
           e.preventDefault();
-          if (!name.trim() && !contact.trim()) return toast.error("Informe ao menos nome ou contato.");
+          if (!name.trim() && !contact.trim()) { toast.error("Informe ao menos nome ou contato."); return; }
           onCreate({ id: `tmp-${Date.now()}`, name: name || contact, aliases: [], city: "—", company: company || "—", role: "—", sphere: "—", proximity: level, priority: prio, phones: contact ? [contact] : [], emails: [], needs: [], skills: [], connections: [], history: [], followups: [], lastInteraction: "—", completeness: 10, visibility: "privado" });
           toast.warning("Demonstração: adicionado só nesta tela. Nada foi salvo.");
           setName(""); setContact(""); setCompany(""); onOpenChange(false);

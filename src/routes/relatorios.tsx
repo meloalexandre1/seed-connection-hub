@@ -7,7 +7,7 @@ export const Route = createFileRoute("/relatorios")({
   component: ReportsPage,
 });
 
-const SECTIONS = [
+const SECTIONS: [string, string][] = [
   ["Relatório diário", "Agenda planejada × realizada, capturas, decisões, compromissos, bloqueios e prioridades de amanhã."],
   ["Inteligência de conexões", "Necessidades abertas, soluções na rede, apresentações realizadas e oportunidades paradas."],
   ["Pessoas estratégicas sem contato", "Quem tem prioridade alta e nenhuma interação recente confirmada."],

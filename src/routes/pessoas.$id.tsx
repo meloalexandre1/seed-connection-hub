@@ -56,7 +56,7 @@ function PersonPage() {
 
       <Tabs defaultValue="geral">
         <TabsList className="h-auto w-full justify-start overflow-x-auto">
-          {[["geral", "Visão geral"], ["necessidades", "Dores e recursos"], ["conexoes", "Conexões"], ["historico", "Histórico"], ["followups", "Follow-ups"]].map(([v, l]) => (
+          {([["geral", "Visão geral"], ["necessidades", "Dores e recursos"], ["conexoes", "Conexões"], ["historico", "Histórico"], ["followups", "Follow-ups"]] as const).map(([v, l]) => (
             <TabsTrigger key={v} value={v} className="min-h-10">{l}</TabsTrigger>
           ))}
         </TabsList>
@@ -122,7 +122,7 @@ function PersonPage() {
               ))}
             </ul>
             <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => {
-              e.preventDefault(); if (!reason || !date) return toast.error("Informe motivo e data.");
+              e.preventDefault(); if (!reason || !date) { toast.error("Informe motivo e data."); return; }
               setFups((x) => [...x, { id: `f${Date.now()}`, reason, date: date.split("-").reverse().join("/") }]); setReason(""); setDate("");
               toast.warning("Demonstração: follow-up não foi salvo.");
             }}>

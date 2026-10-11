@@ -75,7 +75,7 @@ function TasksPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Nova tarefa</DialogTitle><DialogDescription>Demonstração: não será salva.</DialogDescription></DialogHeader>
           <form id="nt" className="grid gap-3" onSubmit={(e) => {
-            e.preventDefault(); if (!title.trim()) return toast.error("Informe o título.");
+            e.preventDefault(); if (!title.trim()) { toast.error("Informe o título."); return; }
             setTasks((t) => [...t, { id: `t${Date.now()}`, title, priority: prio, due: due ? due.split("-").reverse().slice(0, 2).join("/") : "sem prazo", status: "a_fazer", owner: "Você" }]);
             setTitle(""); setDue(""); setOpen(false); toast.warning("Demonstração: tarefa criada só nesta tela.");
           }}>

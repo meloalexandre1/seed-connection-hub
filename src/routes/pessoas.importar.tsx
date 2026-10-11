@@ -43,7 +43,7 @@ function ImportPage() {
 
   const load = (txt: string, name: string) => {
     const r = parseCsv(txt);
-    if (r.length < 2) return toast.error("O arquivo precisa de cabeçalho e ao menos uma linha.");
+    if (r.length < 2 || !r[0]) { toast.error("O arquivo precisa de cabeçalho e ao menos uma linha."); return; }
     setRows(r); setMap(r[0].map(guess)); setFileName(name); setStep(2);
   };
   const body = rows.slice(1);
@@ -78,7 +78,7 @@ function ImportPage() {
             <span className="text-xs text-muted-foreground">O arquivo é lido apenas no seu navegador; nada é enviado.</span>
             <input type="file" accept=".csv,.xlsx,.xls" className="sr-only" onChange={async (e) => {
               const f = e.target.files?.[0]; if (!f) return;
-              if (/\.xlsx?$/i.test(f.name)) { toast.info("Leitura de XLSX será feita pelo backend. Usando a amostra fictícia nesta demonstração."); return load(SAMPLE, `${f.name} (substituído por amostra)`); }
+              if (/\.xlsx?$/i.test(f.name)) { toast.info("Leitura de XLSX será feita pelo backend. Usando a amostra fictícia nesta demonstração."); load(SAMPLE, `${f.name} (substituído por amostra)`); return; }
               load(await f.text(), f.name);
             }} />
           </label>
@@ -90,10 +90,10 @@ function ImportPage() {
       {step === 2 && (
         <Panel title={`Mapear colunas · ${fileName}`}>
           <div className="grid gap-3 sm:grid-cols-2">
-            {rows[0].map((h, i) => (
+            {(rows[0] ?? []).map((h, i) => (
               <div key={i} className="flex items-center gap-3 rounded-xl border p-3">
                 <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{h}</p><p className="truncate text-xs text-muted-foreground">ex.: {rows[1]?.[i] || "—"}</p></div>
-                <Select value={map[i]} onValueChange={(v) => setMap((m) => m.map((x, j) => (j === i ? (v as Field) : x)))}>
+                <Select value={map[i] ?? "ignorar"} onValueChange={(v) => setMap((m) => m.map((x, j) => (j === i ? (v as Field) : x)))}>
                   <SelectTrigger className="h-10 w-36" aria-label={`Campo para ${h}`}><SelectValue /></SelectTrigger>
                   <SelectContent>{FIELDS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                 </Select>
@@ -118,7 +118,7 @@ function ImportPage() {
                     <p className="text-xs text-muted-foreground">{[col(r, "telefone"), col(r, "email"), col(r, "empresa")].filter(Boolean).join(" · ") || "sem contato"}</p>
                     {m && <p className="mt-1 text-xs text-warning">Possível duplicata de {m.p.name}: {m.why.join(", ")}. Nunca mesclado automaticamente.</p>}
                   </div>
-                  <Select value={actions[i]} onValueChange={(v) => setActions((a) => a.map((x, j) => (j === i ? (v as Action) : x)))}>
+                  <Select value={actions[i] ?? "revisar"} onValueChange={(v) => setActions((a) => a.map((x, j) => (j === i ? (v as Action) : x)))}>
                     <SelectTrigger className="h-10 w-40" aria-label="Ação"><SelectValue /></SelectTrigger>
                     <SelectContent>{(["criar", "mesclar", "ignorar", "revisar"] as Action[]).map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
                   </Select>

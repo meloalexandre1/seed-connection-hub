@@ -17,7 +17,7 @@ function MapPage() {
   const [on, setOn] = useState<string[]>(spheres);
   const [sel, setSel] = useState<string | null>(null);
   const shown = people.filter((p) => on.includes(p.sphere));
-  const pos = Object.fromEntries(shown.map((p, i) => {
+  const pos: Record<string, { x: number; y: number }> = Object.fromEntries(shown.map((p, i) => {
     const a = (i / shown.length) * Math.PI * 2 - Math.PI / 2;
     return [p.id, { x: 200 + Math.cos(a) * 130, y: 160 + Math.sin(a) * 110 }];
   }));

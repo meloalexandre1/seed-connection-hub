@@ -31,7 +31,7 @@ function SettingsPage() {
       <PageHeader eyebrow="Administração" title="Configurações" />
       <Tabs defaultValue="perfil">
         <TabsList className="h-auto w-full justify-start overflow-x-auto">
-          {[["perfil", "Perfil"], ["equipe", "Equipe"], ["sid", "Autonomia do SID"], ["integracoes", "Integrações"], ["dados", "Dados e Supabase"], ["acess", "Acessibilidade"]].map(([v, l]) => v && ( <TabsTrigger key={v} value={v} className="min-h-10">{l}</TabsTrigger>)}
+          {([["perfil", "Perfil"], ["equipe", "Equipe"], ["sid", "Autonomia do SID"], ["integracoes", "Integrações"], ["dados", "Dados e Supabase"], ["acess", "Acessibilidade"]] as const).map(([v, l]) => <TabsTrigger key={v} value={v} className="min-h-10">{l}</TabsTrigger>)}
         </TabsList>
 
         <TabsContent value="perfil"><Panel title="Seu perfil">

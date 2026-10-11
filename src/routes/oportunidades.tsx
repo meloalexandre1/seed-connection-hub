@@ -68,7 +68,7 @@ function Evaluator({ o, onSave }: { o: Opportunity; onSave: (o: Opportunity) => 
           {FACTORS.map((f) => (
             <div key={f.key}>
               <div className="flex justify-between text-sm"><span>{f.label}</span><b className="text-primary">{d.scores[f.key]}</b></div>
-              <Slider min={1} max={5} step={1} value={[d.scores[f.key]]} onValueChange={([v]) => setScore(f.key, v)} aria-label={f.label} className="mt-2" />
+              <Slider min={1} max={5} step={1} value={[d.scores[f.key]]} onValueChange={([v]) => setScore(f.key, v ?? 3)} aria-label={f.label} className="mt-2" />
               <p className="mt-1 text-[11px] text-subtle">{f.hint}</p>
             </div>
           ))}

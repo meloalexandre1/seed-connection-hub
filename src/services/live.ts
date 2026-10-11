@@ -32,7 +32,12 @@ export const meService = {
     const roles = must(
       await supabase.from("user_roles").select("role").eq("user_id", data.user.id),
     );
-    return { id: data.user.id, email: data.user.email ?? "", role: roles?.[0]?.role ?? null };
+    return {
+      id: data.user.id,
+      email: data.user.email ?? "",
+      role: roles?.[0]?.role ?? null,
+      name: (data.user.user_metadata?.["full_name"] as string | undefined) ?? "",
+    };
   },
 };
 

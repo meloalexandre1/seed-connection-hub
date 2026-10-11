@@ -60,8 +60,9 @@ function PersonPage() {
     onError: (e) => toast.error(e.message),
   });
 
+  const p = person.data;
   if (person.isLoading) return <p className="p-6 text-center text-sm text-muted-foreground">Carregando…</p>;
-  if (person.isError || !person.data)
+  if (person.isError || !p)
     return (
       <EmptyState
         title="Pessoa não encontrada"
@@ -69,7 +70,6 @@ function PersonPage() {
         action={<Button asChild variant="secondary"><Link to="/pessoas">Voltar para Pessoas</Link></Button>}
       />
     );
-  const p = person.data;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">

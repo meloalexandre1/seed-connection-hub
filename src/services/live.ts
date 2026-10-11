@@ -12,9 +12,9 @@ export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isUuid = (s: string) => UUID.test(s);
 
-function must<T>(r: { data: T | null; error: { message: string } | null }): T {
+function must<T>(r: { data: T | null; error: { message: string } | null }): NonNullable<T> {
   if (r.error) throw new Error(r.error.message);
-  return r.data as T;
+  return r.data as NonNullable<T>;
 }
 
 async function uid() {

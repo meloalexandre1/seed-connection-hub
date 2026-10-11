@@ -81,8 +81,8 @@ function TasksPage() {
                           )}
                         </div>
                         <div className="mt-2 flex gap-1">
-                          <Button size="icon" variant="ghost" aria-label="Mover para a coluna anterior" disabled={ci === 0} onClick={() => move.mutate({ id: t.id, status: COLS[ci - 1].key })}><ChevronLeft className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" aria-label="Mover para a próxima coluna" disabled={ci === COLS.length - 1} onClick={() => move.mutate({ id: t.id, status: COLS[ci + 1].key })}><ChevronRight className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" aria-label="Mover para a coluna anterior" disabled={ci === 0} onClick={() => move.mutate({ id: t.id, status: COLS[ci - 1]!.key })}><ChevronLeft className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" aria-label="Mover para a próxima coluna" disabled={ci === COLS.length - 1} onClick={() => move.mutate({ id: t.id, status: COLS[ci + 1]!.key })}><ChevronRight className="h-4 w-4" /></Button>
                           <Button size="icon" variant="ghost" className="ml-auto" aria-label="Excluir tarefa" onClick={() => confirm("Excluir esta tarefa?") && remove.mutate(t.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </li>

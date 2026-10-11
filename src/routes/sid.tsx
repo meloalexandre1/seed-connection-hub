@@ -42,7 +42,7 @@ function SidPage() {
   useEffect(() => { if (voz) startVoice(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const speak = (t: string) => {
-    if (!("speechSynthesis" in window)) return toast.error("Este navegador não reproduz voz.");
+    if (!("speechSynthesis" in window)) { toast.error("Este navegador não reproduz voz."); return; }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.onend = () => setSpeaking(false);
     setSpeaking(true); speechSynthesis.speak(u);

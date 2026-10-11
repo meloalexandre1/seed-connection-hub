@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      project_members: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          goal: string | null
+          id: string
+          name: string
+          owner_id: string
+          progress: number
+          project_id: string | null
+          risk: string | null
+          status: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility"]
+        }
+        Insert: {
+          created_at?: string
+          goal?: string | null
+          id?: string
+          name: string
+          owner_id?: string
+          progress?: number
+          project_id?: string | null
+          risk?: string | null
+          status?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Update: {
+          created_at?: string
+          goal?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          progress?: number
+          project_id?: string | null
+          risk?: string | null
+          status?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

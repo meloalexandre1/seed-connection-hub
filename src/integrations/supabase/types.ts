@@ -14,6 +14,216 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_methods: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          person_id: string
+          updated_at: string
+          value_normalized: string | null
+          value_raw: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          person_id: string
+          updated_at?: string
+          value_normalized?: string | null
+          value_raw: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          person_id?: string
+          updated_at?: string
+          value_normalized?: string | null
+          value_raw?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_methods_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_attachments: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          id: string
+          kind: string
+          message_id: string
+          mime: string | null
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          message_id: string
+          mime?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          message_id?: string
+          mime?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "sid_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      people: {
+        Row: {
+          aliases: string[]
+          city: string | null
+          company: string | null
+          created_at: string
+          id: string
+          last_interaction_at: string | null
+          name: string
+          next_followup_at: string | null
+          owner_id: string
+          priority: Database["public"]["Enums"]["priority"]
+          project_id: string | null
+          proximity: Database["public"]["Enums"]["proximity"]
+          role: string | null
+          source: Database["public"]["Enums"]["source_kind"]
+          sphere: string | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility"]
+        }
+        Insert: {
+          aliases?: string[]
+          city?: string | null
+          company?: string | null
+          created_at?: string
+          id?: string
+          last_interaction_at?: string | null
+          name: string
+          next_followup_at?: string | null
+          owner_id?: string
+          priority?: Database["public"]["Enums"]["priority"]
+          project_id?: string | null
+          proximity?: Database["public"]["Enums"]["proximity"]
+          role?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          sphere?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Update: {
+          aliases?: string[]
+          city?: string | null
+          company?: string | null
+          created_at?: string
+          id?: string
+          last_interaction_at?: string | null
+          name?: string
+          next_followup_at?: string | null
+          owner_id?: string
+          priority?: Database["public"]["Enums"]["priority"]
+          project_id?: string | null
+          proximity?: Database["public"]["Enums"]["proximity"]
+          role?: string | null
+          source?: Database["public"]["Enums"]["source_kind"]
+          sphere?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_organizations: {
+        Row: {
+          created_at: string
+          organization_id: string
+          person_id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          person_id: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          person_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_organizations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_organizations_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_members: {
         Row: {
           added_by: string | null
@@ -84,6 +294,136 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["visibility"]
         }
         Relationships: []
+      }
+      relationships: {
+        Row: {
+          a: string
+          b: string
+          created_at: string
+          created_by: string
+          evidence: string | null
+          id: string
+          kind: string | null
+          status: Database["public"]["Enums"]["review_status"]
+          updated_at: string
+        }
+        Insert: {
+          a: string
+          b: string
+          created_at?: string
+          created_by?: string
+          evidence?: string | null
+          id?: string
+          kind?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          updated_at?: string
+        }
+        Update: {
+          a?: string
+          b?: string
+          created_at?: string
+          created_by?: string
+          evidence?: string | null
+          id?: string
+          kind?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationships_a_fkey"
+            columns: ["a"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationships_b_fkey"
+            columns: ["b"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sid_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          project_id: string | null
+          title: string | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          project_id?: string | null
+          title?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          project_id?: string | null
+          title?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sid_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sid_messages: {
+        Row: {
+          author_id: string | null
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          mode: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          author_id?: string | null
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          mode?: string | null
+          role: string
+          status?: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          mode?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sid_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "sid_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

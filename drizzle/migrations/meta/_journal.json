@@ -15,6 +15,13 @@
       "when": 1791691688164,
       "tag": "0001_0002_projects_access",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791691711773,
+      "tag": "0002_0003_people_sid",
+      "breakpoints": true
     }
   ]
 }

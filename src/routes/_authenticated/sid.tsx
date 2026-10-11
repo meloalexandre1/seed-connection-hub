@@ -42,9 +42,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SeedLogo } from "@/components/app/ui-bits";
-import { peopleService } from "@/services";
+import { askSid, listSidConversations, getSidConversation } from "@/lib/sid.functions";
+import { isUuid } from "@/services/live";
 import {
-  buildDemoReply,
   formatSize,
   kindOf,
   type Attachment,
@@ -245,11 +245,13 @@ function SidPage() {
       return p.filter((x) => x.id !== id);
     });
 
-  const send = (override?: string) => {
+  const [sending, setSending] = useState(false);
+
+  const send = async (override?: string) => {
     const text = (override ?? input).trim();
     if (!text && pending.length === 0) return;
+    if (sending) return;
     const body = text || "(somente anexos)";
-    const reply = buildDemoReply(mode, body, pending, peopleService.list());
     const userMsg: Msg = {
       id: crypto.randomUUID(),
       role: "user",
@@ -258,29 +260,65 @@ function SidPage() {
       viaVoice: fromVoice,
       attachments: pending,
     };
-    const sidMsg: Msg = {
-      id: crypto.randomUUID(),
-      role: "sid",
-      mode,
-      text: reply.interpretation,
-      reply,
-    };
+    const history = conv.msgs.slice(-12).map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.text,
+    }));
     setConvs((cs) =>
       cs.map((c) =>
         c.id === active
-          ? {
-              ...c,
-              title: c.msgs.length ? c.title : body.slice(0, 40),
-              msgs: [...c.msgs, userMsg, sidMsg],
-            }
+          ? { ...c, title: c.msgs.length ? c.title : body.slice(0, 40), msgs: [...c.msgs, userMsg] }
           : c,
       ),
     );
     setInput("");
     setPending([]);
     setFromVoice(false);
-    if (autoSpeak) speak(sidMsg.id, reply.interpretation);
-    taRef.current?.focus();
+    setSending(true);
+    try {
+      const res = await askSid({
+        data: {
+          conversationId: isUuid(active) ? active : null,
+          mode,
+          question: body,
+          history,
+        },
+      });
+      const sidMsg: Msg = { id: crypto.randomUUID(), role: "sid", mode, text: res.answer };
+      setConvs((cs) =>
+        cs.map((c) =>
+          c.id === active
+            ? { ...c, id: res.conversationId, msgs: [...c.msgs, sidMsg] }
+            : c,
+        ),
+      );
+      if (!isUuid(active)) setActive(res.conversationId);
+      if (autoSpeak) speak(sidMsg.id, res.answer);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao falar com o SID.";
+      toast.error(msg);
+      setConvs((cs) =>
+        cs.map((c) =>
+          c.id === active
+            ? {
+                ...c,
+                msgs: [
+                  ...c.msgs,
+                  {
+                    id: crypto.randomUUID(),
+                    role: "sid" as const,
+                    mode,
+                    text: `Não consegui responder agora: ${msg}`,
+                  },
+                ],
+              }
+            : c,
+        ),
+      );
+    } finally {
+      setSending(false);
+      taRef.current?.focus();
+    }
   };
 
   const setActionStatus = (msgId: string, actionId: string, status: "aprovada" | "descartada") => {

@@ -1,0 +1,39 @@
+name: Seed Web Push Reminders
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seed-push-reminders
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SUPABASE_URL: ${{ secrets.SEED_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SEED_SUPABASE_SERVICE_ROLE_KEY }}
+      PUSH_VAPID_PUBLIC_KEY: ${{ secrets.PUSH_VAPID_PUBLIC_KEY }}
+      PUSH_VAPID_PRIVATE_KEY: ${{ secrets.PUSH_VAPID_PRIVATE_KEY }}
+      PUSH_VAPID_SUBJECT: ${{ secrets.PUSH_VAPID_SUBJECT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Validate configuration
+        run: |
+          test -n "$SUPABASE_URL" || (echo "Missing SEED_SUPABASE_URL" && exit 1)
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || (echo "Missing SEED_SUPABASE_SERVICE_ROLE_KEY" && exit 1)
+          test -n "$PUSH_VAPID_PUBLIC_KEY" || (echo "Missing PUSH_VAPID_PUBLIC_KEY" && exit 1)
+          test -n "$PUSH_VAPID_PRIVATE_KEY" || (echo "Missing PUSH_VAPID_PRIVATE_KEY" && exit 1)
+          test -n "$PUSH_VAPID_SUBJECT" || (echo "Missing PUSH_VAPID_SUBJECT" && exit 1)
+      - name: Send background reminders
+        run: bun scripts/push-dispatch.ts

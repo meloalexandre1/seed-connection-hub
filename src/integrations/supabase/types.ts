@@ -134,6 +134,18 @@ export type Database = {
         }
         Relationships: []
       }
+      capture_analyses: {
+        Row: { capture_id: string; owner_id: string; summary: string; proposals: Json; status: string; model_name: string; analyzed_at: string; updated_at: string }
+        Insert: { capture_id: string; owner_id: string; summary?: string; proposals?: Json; status?: string; model_name?: string; analyzed_at?: string; updated_at?: string }
+        Update: { capture_id?: string; owner_id?: string; summary?: string; proposals?: Json; status?: string; model_name?: string; analyzed_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      capture_analysis_decisions: {
+        Row: { capture_id: string; person_index: number; person_id: string; owner_id: string; reviewed_at: string }
+        Insert: { capture_id: string; person_index: number; person_id: string; owner_id: string; reviewed_at?: string }
+        Update: { capture_id?: string; person_index?: number; person_id?: string; owner_id?: string; reviewed_at?: string }
+        Relationships: []
+      }
       captures: {
         Row: {
           captured_at: string | null

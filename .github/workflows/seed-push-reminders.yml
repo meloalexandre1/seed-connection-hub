@@ -1,0 +1,32 @@
+name: Seed Web Push Reminders
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seed-push-reminders
+  cancel-in-progress: false
+
+jobs:
+  push:
+    # No charges or failed scheduled actions before user explicitly enables push.
+    if: ${{ vars.SEED_PUSH_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger protected Seed Connection dispatcher
+        env:
+          CRON_SECRET: ${{ secrets.PUSH_CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET" || (echo "Configure PUSH_CRON_SECRET in GitHub Actions Secrets" && exit 1)
+          curl --fail-with-body --silent --show-error --max-time 90 --retry 1 \
+            -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -H "Cache-Control: no-store" \
+            "https://hub.sidneyconexao.com.br/api/push/dispatch"

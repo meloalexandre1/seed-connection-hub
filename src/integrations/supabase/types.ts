@@ -71,6 +71,69 @@ export type Database = {
         }
         Relationships: []
       }
+      push_deliveries: {
+        Row: {
+          id: number
+          subscription_id: string
+          event_key: string
+          status: string
+          created_at: string
+          sent_at: string | null
+        }
+        Insert: {
+          id?: never
+          subscription_id: string
+          event_key: string
+          status?: string
+          created_at?: string
+          sent_at?: string | null
+        }
+        Update: {
+          id?: never
+          subscription_id?: string
+          event_key?: string
+          status?: string
+          created_at?: string
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          enabled: boolean
+          created_at: string
+          updated_at: string
+          last_success_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          enabled?: boolean
+          created_at?: string
+          updated_at?: string
+          last_success_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          enabled?: boolean
+          created_at?: string
+          updated_at?: string
+          last_success_at?: string | null
+        }
+        Relationships: []
+      }
       captures: {
         Row: {
           captured_at: string | null

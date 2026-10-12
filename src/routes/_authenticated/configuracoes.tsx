@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
 import { GoogleCalendarConnect } from "@/components/app/GoogleCalendarConnect";
+import { PushDeviceSettings } from "@/components/app/PushDeviceSettings";
 import { GoogleDriveStorageConnect } from "@/components/app/GoogleDriveStorageConnect";
 import { IntegrationRepairGuide } from "@/components/app/IntegrationRepairGuide";
 import { GmailGeminiConnect } from "@/components/app/GmailGeminiConnect";
@@ -243,6 +244,7 @@ function SettingsPage() {
           <Panel title="Integrações">
             <ul className="space-y-2">
               <IntegrationRepairGuide />
+              <PushDeviceSettings />
               <GoogleCalendarConnect />
               <GoogleDriveStorageConnect />
               <GmailGeminiConnect />

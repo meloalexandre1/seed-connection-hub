@@ -38,8 +38,7 @@ export async function uploadCaptureToDrive(file: Blob, kind: "audio" | "video" |
         } else if (r.status === 308) {
           const received = r.headers.get("Range");
           if (!received) {
-            if (offset !== 0) throw new Error("O Drive não informou o ponto de retomada.");
-            offset = 0;
+            throw new Error("O Drive não informou o ponto de retomada.");
           } else {
             const match = received.match(/bytes=0-(\d+)/);
             if (!match) throw new Error("Resposta de upload do Drive inválida.");
@@ -47,7 +46,7 @@ export async function uploadCaptureToDrive(file: Blob, kind: "audio" | "video" |
           }
           success = true;
         } else if (r.status >= 500 || r.status === 429) {
-          if (attempt === 2) throw new Error("O Google Drive não conseguiu receber o arquivo.");
+          throw new Error("O Google Drive não conseguiu receber o arquivo temporariamente.");
         } else {
           throw new Error("Falha no envio ao Google Drive (HTTP " + r.status + ").");
         }

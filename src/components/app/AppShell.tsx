@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SeedLogo } from "./ui-bits";
+import { AlertsBell } from "./AlertsBell";
 
 const PRIMARY = [
   { to: "/", label: "Início", icon: Home },
@@ -157,6 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="h-11 w-full rounded-xl border bg-card pl-9 pr-3 text-sm outline-none focus:border-lime-line"
             />
           </form>
+          <AlertsBell />
           <Link
             to="/configuracoes"
             className="ml-auto flex items-center gap-2 sm:ml-0"

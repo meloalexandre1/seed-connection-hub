@@ -28,6 +28,11 @@ export const askSid = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
+    // Operational requests work directly from Supabase, without an AI
+    // subscription or Lovable AI usage. All queries honor the user's RLS.
+    const { answerSidLocally } = await import("./sidLocal.server");
+    let answer = await answerSidLocally({ mode: data.mode, question: data.question, context: { supabase, userId } });
+    if (answer === null) {
     // Contexto: só o que o RLS permite a este usuário.
     const [people, tasks, opps, followups, interactions] = await Promise.all([
       supabase
@@ -107,7 +112,9 @@ export const askSid = createServerFn({ method: "POST" })
     ].join("\n");
 
     const { askSidModel } = await import("./sid.server");
-    const answer = await askSidModel({ system, history: data.history, question: data.question });
+    answer = await askSidModel({ system, history: data.history, question: data.question });
+
+    }
 
     // Persistência da conversa (mensagem do usuário via RLS; resposta via service role).
     let conversationId = data.conversationId;

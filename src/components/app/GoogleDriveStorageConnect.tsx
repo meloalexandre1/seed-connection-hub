@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   startGoogleDriveConnect, completeGoogleDriveConnect,
   googleDriveStorageStatus, googleDrivePickerCredentials,
-} from "@/server/googleDriveStorage";
+} from "@/lib/googleDriveStorage.functions";
 
 const TARGET = "https://drive.google.com/drive/folders/1jaWPGrByJdqDk5xXp5gBso0h-YSLug1c";
 

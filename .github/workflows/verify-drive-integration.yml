@@ -1,0 +1,40 @@
+name: Verify Drive integration
+
+on:
+  pull_request:
+    paths:
+      - 'src/server/googleDriveStorage.ts'
+      - 'src/server/driveUploadValidation*'
+      - 'src/services/googleDriveUpload.ts'
+      - 'src/services/driveResumable*'
+      - 'src/components/app/GoogleDriveStorageConnect.tsx'
+      - 'src/routes/api/oauth/drive/return.ts'
+      - 'src/lib/sid.server.ts'
+      - 'src/server/aiStatus.ts'
+      - 'src/routes/_authenticated/configuracoes.tsx'
+      - 'src/services/live.ts'
+      - 'bun.lock'
+      - 'package.json'
+      - '.github/workflows/verify-drive-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Test
+        run: bun run test
+      - name: TypeScript
+        run: bunx tsc --noEmit
+      - name: Build
+        run: bun run build

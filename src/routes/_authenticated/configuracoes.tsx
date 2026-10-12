@@ -238,7 +238,8 @@ function SettingsPage() {
         <TabsContent value="integracoes">
           <Panel title="Integrações">
             <ul className="space-y-2">
-              {INTEGRATIONS.map(([n, d]) => (
+              <GoogleCalendarConnect />
+              {INTEGRATIONS.filter(([n]) => !/agenda|calendar/i.test(n)).map(([n, d]) => (
                 <li key={n} className="flex gap-3 rounded-xl border p-3">
                   <Plug className="h-5 w-5 shrink-0 text-subtle" />
                   <div>

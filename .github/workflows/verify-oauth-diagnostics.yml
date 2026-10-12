@@ -1,0 +1,24 @@
+name: Verify OAuth Diagnostics
+on:
+  pull_request:
+    paths:
+      - "src/lib/googleOAuthDiagnostics*"
+      - "src/lib/googleDriveStorage.functions.ts"
+      - "src/components/app/GoogleDriveStorageConnect.tsx"
+      - ".github/workflows/verify-oauth-diagnostics.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+      - run: bun run build
+      - run: bunx tsc --noEmit

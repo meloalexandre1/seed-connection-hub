@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HardDrive, Loader2, FolderOpen, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { describeGoogleDrivePopupError } from "@/lib/googleOAuthDiagnostics";
 import {
   startGoogleDriveConnect, completeGoogleDriveConnect,
   googleDriveStorageStatus, googleDrivePickerCredentials,
@@ -56,7 +57,7 @@ function waitForGooglePopup(popup: Window): Promise<{ code: string; state: strin
       finished = true;
       cleanup();
       if (event.data.error || !event.data.code || !event.data.state) {
-        reject(new Error("Autorização do Google Drive não concluída."));
+        reject(new Error(describeGoogleDrivePopupError(String(event.data.error ?? ""))));
       } else resolve({ code: event.data.code, state: event.data.state });
     };
     const interval = window.setInterval(() => {

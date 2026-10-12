@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: SettingsPage,
 });
 
-const INTEGRATIONS = [
+const INTEGRATIONS: [string, string][] = [
   [
     "PLAUD",
     "Canal futuro · importação manual de arquivos exportados. Você ainda não possui o dispositivo.",

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
 import { GoogleCalendarConnect } from "@/components/app/GoogleCalendarConnect";
+import { GoogleDriveStorageConnect } from "@/components/app/GoogleDriveStorageConnect";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -240,6 +241,7 @@ function SettingsPage() {
           <Panel title="Integrações">
             <ul className="space-y-2">
               <GoogleCalendarConnect />
+              <GoogleDriveStorageConnect />
               {INTEGRATIONS.filter(([n]) => !/agenda|calendar/i.test(n)).map(([n, d]) => (
                 <li key={n} className="flex gap-3 rounded-xl border p-3">
                   <Plug className="h-5 w-5 shrink-0 text-subtle" />

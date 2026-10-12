@@ -248,3 +248,21 @@ export const finishDriveCapture = createServerFn({ method: "POST" })
     if (saveError) throw new Error("Arquivo enviado ao Drive, mas falhou ao vincular ao Supabase. Contate o administrador antes de reenviar.");
     return { ok: true, captureId: capture.id as string };
   });
+
+/**
+ * Google Picker is a user-initiated access grant to the pre-existing folder.
+ * The short-lived access token is sent only to the admin's authenticated
+ * browser; the long-lived refresh token stays encrypted on the server.
+ */
+export const googleDrivePickerCredentials = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await checkAdmin(context as Authed);
+    const developerKey = process.env["GOOGLE_DRIVE_PICKER_API_KEY"] ?? "";
+    const appId = process.env["GOOGLE_DRIVE_PICKER_APP_ID"] ?? "";
+    if (!developerKey || !appId) throw new Error("Configure GOOGLE_DRIVE_PICKER_API_KEY e GOOGLE_DRIVE_PICKER_APP_ID para selecionar a pasta.");
+    return {
+      token: await tokenFor(context.userId), developerKey, appId,
+      folderId: FOLDER,
+    };
+  });

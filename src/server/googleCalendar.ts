@@ -1,19 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
-import {
-  appUserReconnectRequired,
-  authorizeAppUserOAuth,
-  callAsAppUser,
-  disconnectAppUser,
-  exchangeAppUserOAuthCode,
-} from "@/integrations/lovable/appUserConnector";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  deleteConnectionKeyForUser,
-  getConnectionKeyForUser,
-  saveConnectionKeyForUser,
-} from "@/server/appUserConnections.server";
+
+// Módulos server-only (gateway do conector, chave service_role) são carregados
+// dinamicamente dentro dos handlers: este arquivo entra no grafo do cliente
+// por causa das createServerFn, e imports estáticos quebrariam o bundle.
+const connector = () => import("@/integrations/lovable/appUserConnector");
+const keyStore = () => import("@/server/appUserConnections.server");
 
 const GATEWAY_BASE_URL = "https://connector-gateway.lovable.dev";
 const CONNECTOR_ID = "google_calendar";

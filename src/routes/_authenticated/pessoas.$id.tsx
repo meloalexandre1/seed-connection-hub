@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Panel, LevelBadge, PriorityBadge, Avatar, EmptyState } from "@/components/app/ui-bits";
 import { PersonFormDialog } from "@/components/app/PersonFormDialog";
 import { livePeople, liveInteractions, fmtDate } from "@/services/live";
+import { contactLabel } from "@/services/contact-kind";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/pessoas/$id")({
@@ -38,7 +39,7 @@ function PersonPage() {
     onError: (e) => toast.error(`Não foi possível salvar: ${e.message}`),
   });
 
-  const [ck, setCk] = useState("whatsapp");
+  const [ck, setCk] = useState("telefone");
   const [cv, setCv] = useState("");
   const addContact = useMutation({
     mutationFn: () => livePeople.addContact(id, ck, cv),
@@ -104,7 +105,7 @@ function PersonPage() {
         <Panel title="Contatos">
           <ul className="space-y-1 text-sm">
             {(contacts.data ?? []).map((c) => (
-              <li key={c.id}><span className="text-muted-foreground">{c.kind}:</span> {c.value_raw}</li>
+              <li key={c.id}><span className="text-muted-foreground">{contactLabel(c.kind)}:</span> {c.value_raw}</li>
             ))}
             {contacts.data?.length === 0 && <li className="text-muted-foreground">Nenhum contato.</li>}
           </ul>
@@ -112,8 +113,7 @@ function PersonPage() {
             <Select value={ck} onValueChange={setCk}>
               <SelectTrigger className="h-11 w-32" aria-label="Tipo de contato"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="telefone">Telefone</SelectItem>
+                <SelectItem value="telefone">WhatsApp/telefone</SelectItem>
                 <SelectItem value="email">E-mail</SelectItem>
               </SelectContent>
             </Select>

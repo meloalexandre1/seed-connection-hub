@@ -3,8 +3,9 @@ name: Verify Web Push Implementation
 on:
   pull_request:
     paths:
-      - 'scripts/web-push*'
-      - 'scripts/push-dispatch.ts'
+      - 'src/server/webPushCrypto*'
+      - 'src/routes/api/push/dispatch.ts'
+      - 'scripts/create-vapid.mjs'
       - 'src/lib/push.functions.ts'
       - 'src/components/app/PushDeviceSettings.tsx'
       - 'src/routes/_authenticated/configuracoes.tsx'

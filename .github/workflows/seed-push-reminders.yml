@@ -14,6 +14,8 @@ concurrency:
 
 jobs:
   push:
+    # Explicit opt-in, prevents scheduled failures before keys are configured.
+    if: ${{ vars.SEED_PUSH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:

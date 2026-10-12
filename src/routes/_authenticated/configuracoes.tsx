@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
 import { GoogleCalendarConnect } from "@/components/app/GoogleCalendarConnect";
+import { GoogleDriveStorageConnect } from "@/components/app/GoogleDriveStorageConnect";
+import { sidAiStatus } from "@/lib/aiStatus.functions";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -45,6 +47,27 @@ const ACTIONS = [
   "Atualizar perfil de pessoa",
   "Criar tarefa",
 ];
+
+function OpenAIConnectionStatus() {
+  const state = useQuery({ queryKey: ["sid-openai-status"], queryFn: () => sidAiStatus() });
+  return <li className="flex flex-col gap-1 rounded-xl border p-3">
+    <p className="text-sm font-semibold">SID — OpenAI API
+      <span className="ml-2 text-xs font-normal text-muted-foreground">
+        {state.isLoading ? "Verificando..." :
+          state.data?.configured ? "Chave configurada no servidor" : "Aguardando chave secreta"}
+      </span>
+    </p>
+    <p className="text-xs text-muted-foreground">
+      {state.data?.configured
+        ? `Modelo: ${state.data.model}. Sem saldo na OpenAI Platform, o SID avisará antes de completar consultas.`
+        : "Configure OPENAI_API_KEY nas variáveis secretas do servidor. Não envie a chave no chat, nem coloque VITE_ antes do nome."}
+    </p>
+    <a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank"
+       rel="noopener noreferrer" className="text-xs text-primary underline">
+      Gerenciar faturamento da OpenAI API
+    </a>
+  </li>;
+}
 
 function ProfileTab() {
   const qc = useQueryClient();
@@ -240,6 +263,8 @@ function SettingsPage() {
           <Panel title="Integrações">
             <ul className="space-y-2">
               <GoogleCalendarConnect />
+              <GoogleDriveStorageConnect />
+              <OpenAIConnectionStatus />
               {INTEGRATIONS.filter(([n]) => !/agenda|calendar/i.test(n)).map(([n, d]) => (
                 <li key={n} className="flex gap-3 rounded-xl border p-3">
                   <Plug className="h-5 w-5 shrink-0 text-subtle" />
@@ -287,7 +312,7 @@ function SettingsPage() {
           >
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Nenhuma chave privilegiada no navegador; somente chave publicável + RLS.</li>
-              <li>Arquivos em buckets privados com URLs assinadas e validade curta.</li>
+              <li>Novos arquivos no Drive autorizado, ou provisoriamente em Storage privado enquanto a conexão não estiver pronta.</li>
               <li>Nenhum dado real guardado no navegador.</li>
               <li>Auditoria de criação, alteração, exclusão e acesso sensível.</li>
             </ul>

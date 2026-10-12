@@ -233,6 +233,18 @@ export const liveCaptures = {
     );
   },
   async createFile(file: File | Blob, kind: string, label: string, mime: string) {
+    // Google Drive is preferred only after explicit, verified authorization.
+    // Without Google OAuth configured, the existing private Supabase Storage
+    // remains active. No extra copy is saved in Supabase on a Drive upload.
+    const { googleDriveStorageStatus } = await import("@/lib/googleDriveStorage.functions");
+    const drive = await googleDriveStorageStatus();
+    if (drive.folderReady) {
+      const { uploadCaptureToDrive } = await import("@/services/googleDriveUpload");
+      const captureId = await uploadCaptureToDrive(
+        file, kind as "audio" | "video" | "foto" | "arquivo" | "plaud", label, mime,
+      );
+      return must(await supabase.from("captures").select("*").eq("id", captureId).single());
+    }
     const owner_id = await uid();
     const capture = must(
       await supabase

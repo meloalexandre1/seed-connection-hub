@@ -8,7 +8,7 @@ import {
   disconnectGoogleCalendar,
   googleCalendarStatus,
   startGoogleCalendarConnect,
-} from "@/server/googleCalendar";
+} from "@/lib/googleCalendar.functions";
 
 const CONNECTOR_ID = "google_calendar";
 

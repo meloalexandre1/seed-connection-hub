@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel } from "@/components/app/ui-bits";
 import { liveAgenda, type AgendaItem } from "@/services/live";
-import { listGoogleEvents } from "@/server/googleCalendar";
+import { listGoogleEvents } from "@/lib/googleCalendar.functions";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 

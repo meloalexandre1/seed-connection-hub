@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { MAX_UPLOAD_BYTES, cleanUploadName, isAllowedDriveMime, verifyUploadedDriveFile, SEED_DRIVE_FOLDER_ID } from "./driveUploadValidation";
 
 describe("Drive upload trust boundary", () => {
@@ -22,7 +22,7 @@ describe("Drive upload trust boundary", () => {
     [{...file, mimeType: "image/png"}, "mime"],
     [{...file, trashed: true}, "trashed"],
     [{...file, appProperties: undefined}, "unbound file"],
-  ])("rejects wrong file binding (%s / %s)", (wrong) => {
+  ])("rejects wrong file binding (%s / %s)", (wrong, _label) => {
     expect(() => verifyUploadedDriveFile(wrong, capture)).toThrow(/autorizado/);
   });
   it("normalizes a risky file name without allowing path separators", () => {

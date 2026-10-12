@@ -129,7 +129,7 @@ export function GoogleDriveStorageConnect() {
           <p className="text-xs text-muted-foreground">Destino: Seed Connection — Arquivos (sua pasta existente, privada).</p>
           <p className="mt-1 text-xs font-medium">
             {status.isLoading ? "Conferindo conexão..." :
-              s?.folderReady ? "Conectado e com acesso à pasta" :
+              s?.folderReady ? (s.enabled ? "Conectado · uploads no Drive ativos" : "Autorizado · aguardando habilitação dos uploads") :
               !s?.configured ? "Aguardando OAuth do Google no servidor" :
               s?.connected ? "Conta conectada; falta selecionar ou autorizar a pasta" :
               "Aguardando sua autorização Google"}
@@ -143,7 +143,7 @@ export function GoogleDriveStorageConnect() {
         {s?.isAdmin && s.configured && s.connected && !s.folderReady && <Button size="sm" disabled={working} onClick={()=>void pickFolder()}><FolderOpen className="h-4 w-4"/> Selecionar esta pasta</Button>}
       </div>
       <p className="text-xs text-muted-foreground">
-        Até a autorização ser concluída, os novos arquivos continuam no Supabase. A conexão do ChatGPT ao Drive não concede acesso automático ao aplicativo.
+        Até o administrador ativar os uploads após os testes, os novos arquivos continuam no Supabase. A conexão do ChatGPT ao Drive não concede acesso automático ao aplicativo.
       </p>
     </li>
   );

@@ -20,7 +20,7 @@ import {
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
 import { GoogleCalendarConnect } from "@/components/app/GoogleCalendarConnect";
 import { GoogleDriveStorageConnect } from "@/components/app/GoogleDriveStorageConnect";
-import { sidAiStatus } from "@/server/aiStatus";
+import { sidAiStatus } from "@/lib/aiStatus.functions";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({

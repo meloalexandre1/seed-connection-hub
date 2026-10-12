@@ -20,6 +20,7 @@ import {
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
 import { GoogleCalendarConnect } from "@/components/app/GoogleCalendarConnect";
 import { GoogleDriveStorageConnect } from "@/components/app/GoogleDriveStorageConnect";
+import { GmailGeminiConnect } from "@/components/app/GmailGeminiConnect";
 import { SidOpenAIIntegrationStatus } from "@/components/app/SidOpenAIIntegrationStatus";
 import { pageHead } from "@/lib/seo";
 
@@ -34,7 +35,6 @@ const INTEGRATIONS: [string, string][] = [
     "Canal futuro · importação manual de arquivos exportados. Você ainda não possui o dispositivo.",
   ],
   ["Google Agenda", "Não conectado · exigirá autorização e confirmação antes de criar eventos."],
-  ["Gmail / Gemini", "Não conectado · importação de resumos de reunião planejada (P2)."],
   [
     "WhatsApp Business",
     "Não conectado · somente via API oficial após validação técnica e jurídica (P2).",
@@ -243,6 +243,7 @@ function SettingsPage() {
             <ul className="space-y-2">
               <GoogleCalendarConnect />
               <GoogleDriveStorageConnect />
+              <GmailGeminiConnect />
               <SidOpenAIIntegrationStatus />
               {INTEGRATIONS.filter(([n]) => !/agenda|calendar/i.test(n)).map(([n, d]) => (
                 <li key={n} className="flex gap-3 rounded-xl border p-3">

@@ -72,7 +72,7 @@ function AgendaPage() {
       m.set(it.date, arr);
     }
     return m;
-  }, [items.data]);
+  }, [items.data, googleItems]);
 
   const shift = (n: number) =>
     setCursor((c) =>
@@ -127,7 +127,10 @@ function AgendaPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader eyebrow="Agenda" title={title}>
-        Prazos de tarefas e follow-ups reais do banco. Google Agenda ainda não conectado.
+        Prazos de tarefas e follow-ups do banco
+        {google.data?.connected
+          ? ", mais os eventos do seu Google Agenda."
+          : ". Conecte seu Google Agenda em Configurações → Integrações para ver suas reuniões aqui."}
       </PageHeader>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">

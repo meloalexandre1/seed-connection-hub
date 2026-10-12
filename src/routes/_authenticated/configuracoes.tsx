@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
+import { GoogleCalendarConnect } from "@/components/app/GoogleCalendarConnect";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: SettingsPage,
 });
 
-const INTEGRATIONS = [
+const INTEGRATIONS: [string, string][] = [
   [
     "PLAUD",
     "Canal futuro · importação manual de arquivos exportados. Você ainda não possui o dispositivo.",
@@ -238,7 +239,8 @@ function SettingsPage() {
         <TabsContent value="integracoes">
           <Panel title="Integrações">
             <ul className="space-y-2">
-              {INTEGRATIONS.map(([n, d]) => (
+              <GoogleCalendarConnect />
+              {INTEGRATIONS.filter(([n]) => !/agenda|calendar/i.test(n)).map(([n, d]) => (
                 <li key={n} className="flex gap-3 rounded-xl border p-3">
                   <Plug className="h-5 w-5 shrink-0 text-subtle" />
                   <div>

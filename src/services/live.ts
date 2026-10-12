@@ -154,7 +154,7 @@ export interface AgendaItem {
   id: string;
   date: string; // YYYY-MM-DD
   title: string;
-  kind: "prazo" | "followup";
+  kind: "prazo" | "followup" | "reuniao";
   detail: string;
   done: boolean;
 }

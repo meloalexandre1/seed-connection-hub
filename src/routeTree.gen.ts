@@ -25,6 +25,7 @@ import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPessoasIndexRouteImport } from './routes/_authenticated/pessoas.index'
 import { Route as AuthenticatedPessoasIdRouteImport } from './routes/_authenticated/pessoas.$id'
 import { Route as AuthenticatedPessoasImportarRouteImport } from './routes/_authenticated/pessoas.importar'
+import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -109,6 +110,11 @@ const AuthenticatedPessoasImportarRoute =
     path: '/pessoas/importar',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
+  id: '/api/oauth/google/return',
+  path: '/api/oauth/google/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/pessoas/importar': typeof AuthenticatedPessoasImportarRoute
   '/pessoas/': typeof AuthenticatedPessoasIndexRoute
+  '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/pessoas/importar': typeof AuthenticatedPessoasImportarRoute
   '/pessoas': typeof AuthenticatedPessoasIndexRoute
+  '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/_authenticated/pessoas/importar': typeof AuthenticatedPessoasImportarRoute
   '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
+  '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/pessoas/$id'
     | '/pessoas/importar'
     | '/pessoas/'
+    | '/api/oauth/google/return'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/pessoas/$id'
     | '/pessoas/importar'
     | '/pessoas'
+    | '/api/oauth/google/return'
   id:
     | '__root__'
     | '/_authenticated'
@@ -216,11 +227,13 @@ export interface FileRouteTypes {
     | '/_authenticated/pessoas/$id'
     | '/_authenticated/pessoas/importar'
     | '/_authenticated/pessoas/'
+    | '/api/oauth/google/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPessoasImportarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/oauth/google/return': {
+      id: '/api/oauth/google/return'
+      path: '/api/oauth/google/return'
+      fullPath: '/api/oauth/google/return'
+      preLoaderRoute: typeof ApiOauthGoogleReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -380,6 +400,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

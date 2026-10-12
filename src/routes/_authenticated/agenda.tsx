@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel } from "@/components/app/ui-bits";
 import { liveAgenda, type AgendaItem } from "@/services/live";
+import { listGoogleEvents } from "@/server/googleCalendar";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
@@ -18,8 +19,9 @@ type View = "dia" | "semana" | "mes";
 const KIND_STYLE: Record<AgendaItem["kind"], string> = {
   prazo: "bg-warning text-primary-foreground",
   followup: "bg-info text-primary-foreground",
+  reuniao: "bg-primary text-primary-foreground",
 };
-const KIND_LABEL = { prazo: "Prazo de tarefa", followup: "Follow-up" };
+const KIND_LABEL = { prazo: "Prazo de tarefa", followup: "Follow-up", reuniao: "Google Agenda" };
 const WD = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const iso = (d: Date) =>
@@ -40,15 +42,37 @@ function AgendaPage() {
   const [cursor, setCursor] = useState(() => new Date());
   const items = useQuery({ queryKey: ["agenda"], queryFn: () => liveAgenda.list() });
 
+  // Eventos do Google Agenda da pessoa logada (só quando ela conectou a conta).
+  const range = useMemo(() => {
+    const start = view === "mes" ? startOfWeek(new Date(cursor.getFullYear(), cursor.getMonth(), 1)) : view === "semana" ? startOfWeek(cursor) : cursor;
+    const end = addDays(start, view === "mes" ? 42 : view === "semana" ? 7 : 1);
+    return { timeMin: start.toISOString(), timeMax: end.toISOString() };
+  }, [view, cursor]);
+  const google = useQuery({
+    queryKey: ["google-events", range.timeMin, range.timeMax],
+    queryFn: () => listGoogleEvents({ data: range }),
+  });
+  const googleItems = useMemo<AgendaItem[]>(() => {
+    if (!google.data?.connected) return [];
+    return google.data.events.map((e) => ({
+      id: `g-${e.id}`,
+      date: e.start.slice(0, 10),
+      title: e.title,
+      kind: "reuniao" as AgendaItem["kind"],
+      detail: e.allDay ? "Google Agenda · dia inteiro" : `Google Agenda · ${new Date(e.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
+      done: false,
+    }));
+  }, [google.data]);
+
   const byDate = useMemo(() => {
     const m = new Map<string, AgendaItem[]>();
-    for (const it of items.data ?? []) {
+    for (const it of [...(items.data ?? []), ...googleItems]) {
       const arr = m.get(it.date) ?? [];
       arr.push(it);
       m.set(it.date, arr);
     }
     return m;
-  }, [items.data]);
+  }, [items.data, googleItems]);
 
   const shift = (n: number) =>
     setCursor((c) =>
@@ -103,7 +127,10 @@ function AgendaPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader eyebrow="Agenda" title={title}>
-        Prazos de tarefas e follow-ups reais do banco. Google Agenda ainda não conectado.
+        Prazos de tarefas e follow-ups do banco
+        {google.data?.connected
+          ? ", mais os eventos do seu Google Agenda."
+          : ". Conecte seu Google Agenda em Configurações → Integrações para ver suas reuniões aqui."}
       </PageHeader>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">

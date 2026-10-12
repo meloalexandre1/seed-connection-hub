@@ -126,7 +126,7 @@ export const askSid = createServerFn({ method: "POST" })
       mode: data.mode,
       author_id: userId,
       content: data.question,
-      status: "enviada",
+      status: "concluido",
     });
     if (userMsg.error) throw new Error(userMsg.error.message);
 
@@ -137,7 +137,7 @@ export const askSid = createServerFn({ method: "POST" })
       mode: data.mode,
       author_id: null,
       content: answer,
-      status: "concluida",
+      status: "concluido",
     });
     if (sidMsg.error) throw new Error(sidMsg.error.message);
 

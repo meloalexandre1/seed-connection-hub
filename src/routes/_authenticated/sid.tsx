@@ -156,10 +156,15 @@ function SidPage() {
     listSidConversations()
       .then((rows) => {
         if (rows.length)
-          setConvs((cs) => [
-            ...cs,
-            ...rows.map((r) => ({ id: r.id, title: r.title ?? "Conversa", msgs: [] })),
-          ]);
+          setConvs((cs) => {
+            const seen = new Set(cs.map((c) => c.id));
+            return [
+              ...cs,
+              ...rows
+                .filter((r) => !seen.has(r.id))
+                .map((r) => ({ id: r.id, title: r.title ?? "Conversa", msgs: [] })),
+            ];
+          });
       })
       .catch(() => toast.error("Não foi possível carregar o histórico de conversas."));
   }, []);
@@ -535,6 +540,15 @@ function SidPage() {
                     {m.viaVoice && " · ditado no navegador, revisado por você"}
                   </span>
                 </div>
+              ) : !m.reply ? (
+                <article key={m.id} className="flex gap-3" aria-label="Resposta do SID">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-lime-line bg-lime-deep">
+                    <SeedLogo className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border bg-card px-4 py-2.5 text-sm whitespace-pre-wrap">
+                    {m.text}
+                  </div>
+                </article>
               ) : (
                 m.reply && (
                   <article key={m.id} className="flex gap-3" aria-label="Resposta do SID">

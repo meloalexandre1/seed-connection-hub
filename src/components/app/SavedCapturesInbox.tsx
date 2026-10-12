@@ -4,6 +4,7 @@ import { Archive, CheckCircle2, ChevronDown, ChevronUp, ExternalLink, FileText, 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { liveCaptures } from "@/services/live";
+import { CaptureAnalysisPanel } from "@/components/app/CaptureAnalysisPanel";
 
 /**
  * Saved records are read from Supabase on every page load, not a local queue.
@@ -83,6 +84,7 @@ export function SavedCapturesInbox() {
               <CheckCircle2 className="h-4 w-4"/> Marcar como revisado
             </Button>}
           </div>
+          {c.note&&c.note.length>=40&&<CaptureAnalysisPanel captureId={c.id}/>}
           {c.note&&expanded===c.id&&
             <div className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/40 p-3 text-xs">
               {c.note}

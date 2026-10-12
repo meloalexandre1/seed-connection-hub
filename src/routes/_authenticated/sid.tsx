@@ -156,10 +156,15 @@ function SidPage() {
     listSidConversations()
       .then((rows) => {
         if (rows.length)
-          setConvs((cs) => [
-            ...cs,
-            ...rows.map((r) => ({ id: r.id, title: r.title ?? "Conversa", msgs: [] })),
-          ]);
+          setConvs((cs) => {
+            const seen = new Set(cs.map((c) => c.id));
+            return [
+              ...cs,
+              ...rows
+                .filter((r) => !seen.has(r.id))
+                .map((r) => ({ id: r.id, title: r.title ?? "Conversa", msgs: [] })),
+            ];
+          });
       })
       .catch(() => toast.error("Não foi possível carregar o histórico de conversas."));
   }, []);

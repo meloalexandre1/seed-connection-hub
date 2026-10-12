@@ -3,8 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainCircuit, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  analyzeTextCapture,approveCapturePerson,getCaptureAnalysis,
+  analyzeTextCapture,approveCapturePerson,getCaptureAnalysis,searchExistingCapturePeople,
 } from "@/lib/captureIntelligence.functions";
 
 type Proposal=Awaited<ReturnType<typeof getCaptureAnalysis>>["people"][number];
@@ -12,6 +13,20 @@ function ReviewPerson({item,captureId,onApproved}:{
   item:Proposal;captureId:string;onApproved:()=>void;
 }) {
   const [selected,setSelected]=useState(item.matches.length===1?item.matches[0]!.id:"");
+  const [searchText,setSearchText]=useState("");
+  const [searchedText,setSearchedText]=useState("");
+  const results=useQuery({
+    queryKey:["candidate-person-search",captureId,item.index,searchedText],
+    queryFn:()=>searchExistingCapturePeople({data:{
+      captureId,personIndex:item.index,query:searchedText,
+    }}),
+    enabled:searchedText.length>=2 && !item.approvedPersonId,
+    retry:false,
+  });
+  const options=[
+    ...item.matches.map(m=>({id:m.id,name:m.name,detail:"coincidência por "+m.method})),
+    ...(results.data??[]).map(p=>({id:p.id,name:p.name,detail:[p.role,p.company].filter(Boolean).join(" · ")})),
+  ].filter((person,index,arr)=>arr.findIndex(p=>p.id===person.id)===index);
   const apply=useMutation({
     mutationFn:()=>approveCapturePerson({data:{
       captureId,personIndex:item.index,
@@ -37,22 +52,36 @@ function ReviewPerson({item,captureId,onApproved}:{
     {item.approvedPersonId ? <p className="flex items-center gap-2 text-xs text-success">
       <CheckCircle2 className="h-4 w-4"/> Revisado e vinculado à ficha.
     </p> : <>
-      {item.matches.length>0&&<label className="block text-xs">
-        Pessoa existente que você confirma:
-        <select className="mt-1 w-full rounded-md border bg-background p-2" value={selected}
-          onChange={e=>setSelected(e.target.value)}>
-          <option value="">Escolha a ficha correta</option>
-          {item.matches.map(m=><option key={m.id} value={m.id}>{m.name} (coincidência por {m.method})</option>)}
-        </select>
-      </label>}
-      <Button size="sm" variant={item.matches.length?"default":"secondary"}
+      <div className="space-y-2">
+        <p className="text-xs font-medium">Verificar se a pessoa já existe no CRM</p>
+        <div className="flex gap-2">
+          <Input aria-label="Buscar contato existente" value={searchText}
+            placeholder="Pesquisar outro nome no CRM" maxLength={80}
+            onChange={e=>setSearchText(e.target.value)}/>
+          <Button size="sm" variant="outline" disabled={searchText.trim().length<2||results.isFetching}
+            onClick={()=>setSearchedText(searchText.trim())}>Buscar</Button>
+        </div>
+        {results.isError&&<p role="alert" className="text-xs text-destructive">{results.error.message}</p>}
+        {options.length>0&&<label className="block text-xs">
+          Selecione a ficha que você reconhece:
+          <select className="mt-1 w-full rounded-md border bg-background p-2" value={selected}
+            onChange={e=>setSelected(e.target.value)}>
+            <option value="">Ainda não identifiquei esta pessoa</option>
+            {options.map(m=><option key={m.id} value={m.id}>{m.name} ({m.detail})</option>)}
+          </select>
+        </label>}
+      </div>
+      <Button size="sm" variant={selected?"default":"secondary"}
         disabled={apply.isPending||(item.matches.length>0&&!selected)}
-        onClick={()=>apply.mutate()}>
+        onClick={()=>{
+          if(!selected&&!window.confirm("Você verificou se essa pessoa já existe? Criar ficha nova pode causar duplicidade."))return;
+          apply.mutate();
+        }}>
         {apply.isPending&&<Loader2 className="h-4 w-4 animate-spin"/>}
-        {item.matches.length?"Confirmar vínculo e registrar fatos":"Criar nova pessoa e registrar fatos"}
+        {selected?"Confirmar vínculo e registrar fatos":"Criar nova pessoa e registrar fatos"}
       </Button>
-      {item.matches.length===0&&<p className="text-xs text-muted-foreground">
-        Nenhuma correspondência exata encontrada. Confira o nome antes de criar uma ficha nova.
+      {!options.length&&<p className="text-xs text-muted-foreground">
+        Sem correspondência exata. Pesquise também por outros nomes conhecidos antes de criar uma ficha.
       </p>}
     </>}
   </div>;

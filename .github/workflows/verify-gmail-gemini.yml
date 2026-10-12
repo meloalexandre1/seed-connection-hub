@@ -1,0 +1,29 @@
+name: Verify Gmail Gemini Import
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/gmailMeetingParser*'
+      - 'src/lib/gmailGemini.functions.ts'
+      - 'src/routes/api/oauth/gmail/return.ts'
+      - 'src/components/app/GmailGeminiConnect.tsx'
+      - 'src/routes/_authenticated/configuracoes.tsx'
+      - '.github/workflows/verify-gmail-gemini.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+      - run: bun run build
+      - run: bunx tsc --noEmit

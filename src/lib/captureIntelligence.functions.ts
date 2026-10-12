@@ -11,7 +11,7 @@ const applyInput=captureInput.extend({
   personIndex:z.number().int().min(0).max(11),
   personId:z.string().uuid().nullable(),
 });
-type Db=typeof import("@/integrations/supabase/client").supabase;
+type Db=any; // Only the new review tables lack generated DB types until next Supabase sync.
 type PersonRow={id:string;name:string};
 type IdentityDecision={person_index:number;person_id:string};
 
@@ -85,15 +85,17 @@ export const getCaptureAnalysis=createServerFn({method:"GET"})
   .middleware([requireSupabaseAuth])
   .inputValidator(captureInput)
   .handler(async ({context,data})=>{
-    await requireOwnTextCapture(context.supabase,context.userId,data.captureId);
-    return viewAnalysis(context.supabase,context.userId,data.captureId);
+    const db:Db=context.supabase;
+    await requireOwnTextCapture(db,context.userId,data.captureId);
+    return viewAnalysis(db,context.userId,data.captureId);
   });
 
 export const analyzeTextCapture=createServerFn({method:"POST"})
   .middleware([requireSupabaseAuth])
   .inputValidator(captureInput)
   .handler(async ({context,data})=>{
-    const {supabase,userId}=context;
+    const {userId}=context;
+    const supabase:Db=context.supabase;
     const capture=await requireOwnTextCapture(supabase,userId,data.captureId);
     const existing=await viewAnalysis(supabase,userId,data.captureId);
     if(existing.analysis)return existing; // deliberate: no repeat billing or overwriting approvals
@@ -121,7 +123,7 @@ export const analyzeTextCapture=createServerFn({method:"POST"})
     catch{throw new Error("A IA respondeu fora do formato esperado. O texto foi preservado, mas a análise não foi gravada. Tente novamente mais tarde.");}
     // Save via server-only service role. Caller ownership was checked via RLS.
     const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
-    const {error}=await supabaseAdmin.from("capture_analyses").insert({
+    const {error}=await (supabaseAdmin as any).from("capture_analyses").insert({
       capture_id:capture.id,owner_id:userId,summary:extraction.summary,
       proposals:extraction,status:"sugerido",model_name:"sid",
     });
@@ -134,15 +136,16 @@ export const approveCapturePerson=createServerFn({method:"POST"})
   .middleware([requireSupabaseAuth])
   .inputValidator(applyInput)
   .handler(async ({context,data})=>{
-    await requireOwnTextCapture(context.supabase,context.userId,data.captureId);
-    const review=await viewAnalysis(context.supabase,context.userId,data.captureId);
+    const db:Db=context.supabase;
+    await requireOwnTextCapture(db,context.userId,data.captureId);
+    const review=await viewAnalysis(db,context.userId,data.captureId);
     const candidate=review.people.find(p=>p.index===data.personIndex);
     if(!candidate)throw new Error("Esta pessoa não faz parte da análise.");
     if(data.personId && !candidate.matches.some(m=>m.id===data.personId))
       throw new Error("Selecione uma identidade confirmada entre as correspondências propostas.");
     if(!data.personId && candidate.matches.length)
       throw new Error("Já existem pessoas semelhantes. Escolha a ficha existente ou revise manualmente.");
-    const {data:personId,error}=await context.supabase.rpc("approve_capture_person",{
+    const {data:personId,error}=await db.rpc("approve_capture_person",{
       p_capture_id:data.captureId,p_person_index:data.personIndex,
       p_existing_person_id:data.personId,
     });

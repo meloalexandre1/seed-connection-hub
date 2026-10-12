@@ -8,11 +8,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  cleanUploadName, isAllowedDriveMime, MAX_UPLOAD_BYTES,
+  SEED_DRIVE_FOLDER_ID, verifyUploadedDriveFile,
+} from "@/server/driveUploadValidation";
 
 const CONNECTION = "google_drive_storage";
-const FOLDER = "1jaWPGrByJdqDk5xXp5gBso0h-YSLug1c";
+const FOLDER = SEED_DRIVE_FOLDER_ID;
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
-const MAX_BYTES = 1024 * 1024 * 1024; // 1 GiB per upload initially
+const MAX_BYTES = MAX_UPLOAD_BYTES; // 1 GiB per upload initially
 
 type StoredOAuth = { accessToken: string; refreshToken: string; expiresAt: number };
 type Authed = { supabase: any; userId: string };
@@ -47,7 +51,10 @@ async function hmacKey() {
   return crypto.subtle.importKey("raw", decode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 }
 async function makeState(userId: string) {
-  const payload = encode(new TextEncoder().encode(JSON.stringify({ userId, until: Date.now() + 600_000, nonce: crypto.randomUUID() })));
+  const nonce = crypto.randomUUID();
+  const { saveConnectionKeyForUser } = await import("@/server/appUserConnections.server");
+  await saveConnectionKeyForUser(userId, "google_drive_oauth_pending", nonce);
+  const payload = encode(new TextEncoder().encode(JSON.stringify({ userId, until: Date.now() + 600_000, nonce })));
   const signature = await crypto.subtle.sign("HMAC", await hmacKey(), new TextEncoder().encode(payload));
   return payload + "." + encode(new Uint8Array(signature));
 }
@@ -56,8 +63,15 @@ async function verifyState(state: string, userId: string) {
   if (!payload || !signature || state.length > 4000) throw new Error("Autorização do Drive inválida.");
   const valid = await crypto.subtle.verify("HMAC", await hmacKey(), decode(signature), new TextEncoder().encode(payload));
   if (!valid) throw new Error("A assinatura da autorização do Drive não é válida.");
-  const data = JSON.parse(new TextDecoder().decode(decode(payload))) as { userId: string; until: number };
-  if (data.userId !== userId || data.until < Date.now()) throw new Error("Autorização expirada ou de outro usuário.");
+  const data = JSON.parse(new TextDecoder().decode(decode(payload))) as { userId: string; until: number; nonce: string };
+  if (data.userId !== userId || data.until < Date.now() || !data.nonce)
+    throw new Error("Autorização expirada ou de outro usuário.");
+  const { getConnectionKeyForUser, deleteConnectionKeyForUser } =
+    await import("@/server/appUserConnections.server");
+  const pending = await getConnectionKeyForUser(userId, "google_drive_oauth_pending");
+  if (!pending || pending !== data.nonce) throw new Error("A autorização já foi usada ou substituída.");
+  // Consume before using Google's one-time authorization code.
+  await deleteConnectionKeyForUser(userId, "google_drive_oauth_pending");
 }
 async function storedFor(userId: string): Promise<StoredOAuth | null> {
   const { getConnectionKeyForUser } = await import("@/server/appUserConnections.server");
@@ -119,7 +133,7 @@ const uploadInput = z.object({
   size: z.number().int().min(1).max(MAX_BYTES),
 });
 function allowedMime(mime: string) {
-  return /^(audio\/[-\w+.]+|video\/[-\w+.]+|image\/(jpeg|png|webp|heic)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\.[-\w+.]+|vnd\.ms-excel)|text\/(plain|csv))$/.test(mime);
+  return isAllowedDriveMime(mime);
 }
 
 export const startGoogleDriveConnect = createServerFn({ method: "POST" })
@@ -197,30 +211,42 @@ export const startDriveCapture = createServerFn({ method: "POST" })
     const ownerId = await ownerFor(context.userId);
     const token = await tokenFor(ownerId);
     await ensureFolder(token);
-    const title = data.name.replace(/[\\/\x00-\x1f]/g, "_");
-    const req = await driveApi(token,
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,parents",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=UTF-8",
-          "X-Upload-Content-Type": data.mime,
-          "X-Upload-Content-Length": String(data.size),
-        },
-        body: JSON.stringify({ name: title, mimeType: data.mime, parents: [FOLDER] }),
-      },
-    );
-    const uploadUrl = req.headers.get("Location");
-    if (!uploadUrl || !uploadUrl.startsWith("https://www.googleapis.com/")) {
-      throw new Error("O Google Drive não retornou uma sessão de upload válida.");
-    }
-    // Only after Drive accepted the session, make the linked capture record.
+    const title = cleanUploadName(data.name);
+    // Create a private, owner-bound capture BEFORE asking Google for a session.
+    // The Drive upload carries the capture ID as private application metadata.
     const { data: capture, error } = await context.supabase.from("captures").insert({
       owner_id: context.userId, visibility: "privado", source: "integracao",
       kind: data.kind, title, mime: data.mime, size_bytes: data.size,
       status: "enviando",
     }).select("id").single();
     if (error || !capture) throw new Error("Falha ao preparar a captura no banco.");
+    let uploadUrl: string | null = null;
+    try {
+      const req = await driveApi(token,
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,parents,appProperties",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+            "X-Upload-Content-Type": data.mime,
+            "X-Upload-Content-Length": String(data.size),
+          },
+          body: JSON.stringify({
+            name: title, mimeType: data.mime, parents: [FOLDER],
+            appProperties: { seedCaptureId: capture.id, seedOwnerId: context.userId },
+          }),
+        },
+      );
+      uploadUrl = req.headers.get("Location");
+      if (!uploadUrl || !uploadUrl.startsWith("https://www.googleapis.com/")) {
+        throw new Error("O Google Drive não retornou uma sessão de upload válida.");
+      }
+    } catch (err) {
+      await context.supabase.from("captures")
+        .update({ status: "erro", error: "Não foi possível iniciar o upload no Drive." })
+        .eq("id", capture.id);
+      throw err;
+    }
     return { uploadUrl, captureId: capture.id as string };
   });
 
@@ -230,18 +256,16 @@ export const finishDriveCapture = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await role(context as Authed);
     const { data: capture, error } = await context.supabase.from("captures")
-      .select("id,size_bytes,status,owner_id").eq("id", data.captureId).maybeSingle();
+      .select("id,size_bytes,status,owner_id,mime").eq("id", data.captureId).maybeSingle();
     if (error || !capture || capture.owner_id !== context.userId || capture.status !== "enviando") {
       throw new Error("Captura não encontrada ou sem autorização de atualização.");
     }
     const token = await tokenFor(await ownerFor(context.userId));
     const result = await driveApi(token, "https://www.googleapis.com/drive/v3/files/" +
-      data.fileId + "?fields=id,name,size,parents,trashed");
-    const file = await result.json() as { id: string; size?: string; parents?: string[]; trashed?: boolean };
-    if (file.trashed || !file.parents?.includes(FOLDER) ||
-        Number(file.size) !== Number(capture.size_bytes)) {
-      throw new Error("O arquivo enviado não corresponde ao registro autorizado.");
-    }
+      data.fileId + "?fields=id,name,size,mimeType,parents,trashed,appProperties");
+    const file = await result.json();
+    if (file.id !== data.fileId) throw new Error("ID do arquivo no Drive não corresponde.");
+    verifyUploadedDriveFile(file, capture);
     const { error: saveError } = await context.supabase.from("captures").update({
       status: "revisar", external_id: "gdrive:" + file.id, storage_path: null, error: null,
     }).eq("id", capture.id);

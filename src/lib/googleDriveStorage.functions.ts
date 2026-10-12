@@ -16,6 +16,7 @@ import {
 const CONNECTION = "google_drive_storage";
 const FOLDER = SEED_DRIVE_FOLDER_ID;
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const uploadsEnabled = () => process.env["GOOGLE_DRIVE_UPLOADS_ENABLED"] === "true";
 const MAX_BYTES = MAX_UPLOAD_BYTES; // 1 GiB per upload initially
 
 type StoredOAuth = { accessToken: string; refreshToken: string; expiresAt: number };
@@ -195,18 +196,18 @@ export const googleDriveStorageStatus = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const r = await role(context as Authed);
     const c = config();
-    if (!c.ready) return { configured: false, connected: false, folderReady: false, isAdmin: r === "admin" };
+    if (!c.ready) return { configured: false, connected: false, folderReady: false, enabled: uploadsEnabled(), isAdmin: r === "admin" };
     try {
       const ownerId = await ownerFor(context.userId);
       const token = await tokenFor(ownerId);
       try {
         await ensureFolder(token);
-        return { configured: true, connected: true, folderReady: true, isAdmin: r === "admin" };
+        return { configured: true, connected: true, folderReady: true, enabled: uploadsEnabled(), isAdmin: r === "admin" };
       } catch {
-        return { configured: true, connected: true, folderReady: false, isAdmin: r === "admin" };
+        return { configured: true, connected: true, folderReady: false, enabled: uploadsEnabled(), isAdmin: r === "admin" };
       }
     } catch {
-      return { configured: true, connected: false, folderReady: false, isAdmin: r === "admin" };
+      return { configured: true, connected: false, folderReady: false, enabled: uploadsEnabled(), isAdmin: r === "admin" };
     }
   });
 
@@ -215,6 +216,7 @@ export const startDriveCapture = createServerFn({ method: "POST" })
   .inputValidator(uploadInput)
   .handler(async ({ data, context }) => {
     await role(context as Authed);
+    if (!uploadsEnabled()) throw new Error("Uploads no Google Drive ainda não foram ativados pelo administrador.");
     if (!allowedMime(data.mime)) throw new Error("Formato de arquivo não permitido no Drive.");
     const ownerId = await ownerFor(context.userId);
     const token = await tokenFor(ownerId);

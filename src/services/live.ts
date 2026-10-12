@@ -237,7 +237,10 @@ export const liveCaptures = {
     // Existing private Supabase storage stays in place until authorization succeeds.
     const { googleDriveStorageStatus } = await import("@/lib/googleDriveStorage.functions");
     const drive = await googleDriveStorageStatus();
-    if (drive.folderReady) {
+    if (drive.enabled && !drive.folderReady) {
+      throw new Error("O Google Drive está habilitado, mas ainda não tem acesso à pasta. Solicite ao administrador que confira a autorização.");
+    }
+    if (drive.enabled && drive.folderReady) {
       const { uploadCaptureToDrive } = await import("@/services/googleDriveUpload");
       const captureId = await uploadCaptureToDrive(
         file, kind as "audio" | "video" | "foto" | "arquivo" | "plaud", label, mime,

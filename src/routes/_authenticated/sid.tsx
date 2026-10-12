@@ -669,6 +669,17 @@ function SidPage() {
               ),
             )
           )}
+          {sending && (
+            <div className="flex items-center gap-3" role="status" aria-label="SID pensando">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-lime-line bg-lime-deep">
+                <SeedLogo className="h-5 w-5" />
+              </div>
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                SID pensando…
+              </p>
+            </div>
+          )}
           <div ref={endRef} />
         </div>
 

@@ -1,15 +1,16 @@
 # Roadmap
 
-## Em andamento
-- [ ] SID com IA real: corrigir render da resposta (bolha simples), status das mensagens, indicador "pensando", retestar no navegador
-- [ ] Agenda: visões dia/semana/mês + eventos do Google Agenda (feito, falta validar)
-- [ ] Captura real: upload ao storage + registro no banco (feito, falta validar)
-- [ ] Google Agenda: fluxo de conexão por usuário (código pronto; usuário precisa autorizar na UI)
+## Concluído neste turno
+- [x] SID com IA real: resposta renderiza, mensagens persistem, indicador "pensando", formatação **negrito**
+- [x] Agenda: visões dia/semana/mês + navegação de datas; pronta para eventos do Google Agenda
+- [x] Captura real: upload ao storage + registro no banco
+- [x] Google Agenda: fluxo de conexão por usuário implementado (Configurações → Integrações); usuário autoriza na UI
 
-## Novo
-- [ ] Configurar infraestrutura de e-mail para notify.hub.sidneyconexao.com.br (verificar status do domínio, DNS, scaffold se preciso)
+## Em andamento
+- [ ] E-mail notify.hub.sidneyconexao.com.br: domínio em verificação; usuário precisa adicionar registros DNS (TXT + 2 NS) no provedor do domínio
 
 ## Depois
 - [ ] Telas demo restantes: Início, Oportunidades, Projetos, Mapa, Relatórios, Importador, Organizações, Relacionamentos
 - [ ] Tarefas: permitir atribuir a outra pessoa
 - [ ] LGPD: exportação/exclusão de dados do titular
+- [ ] Análise de anexos do SID por IA

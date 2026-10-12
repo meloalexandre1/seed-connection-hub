@@ -23,7 +23,7 @@ export interface UploadedDriveFile {
   mimeType?: string;
   parents?: string[];
   trashed?: boolean;
-  appProperties?: Record<string, string>;
+  appProperties?: Record<string, string> | undefined;
 }
 
 export function verifyUploadedDriveFile(
@@ -34,8 +34,8 @@ export function verifyUploadedDriveFile(
   if (
     file.trashed ||
     !file.parents?.includes(SEED_DRIVE_FOLDER_ID) ||
-    proof?.seedCaptureId !== capture.id ||
-    proof?.seedOwnerId !== capture.owner_id ||
+    proof?.["seedCaptureId"] !== capture.id ||
+    proof?.["seedOwnerId"] !== capture.owner_id ||
     !Number.isSafeInteger(Number(file.size)) ||
     Number(file.size) !== Number(capture.size_bytes) ||
     file.mimeType !== capture.mime

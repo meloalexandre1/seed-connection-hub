@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader, Panel, DemoNotice } from "@/components/app/ui-bits";
+import { GoogleCalendarConnect } from "@/components/app/GoogleCalendarConnect";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({

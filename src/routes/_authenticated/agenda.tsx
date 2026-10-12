@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel } from "@/components/app/ui-bits";
 import { liveAgenda, type AgendaItem } from "@/services/live";
+import { listGoogleEvents } from "@/server/googleCalendar";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
 
@@ -39,6 +40,28 @@ function AgendaPage() {
   const [view, setView] = useState<View>("semana");
   const [cursor, setCursor] = useState(() => new Date());
   const items = useQuery({ queryKey: ["agenda"], queryFn: () => liveAgenda.list() });
+
+  // Eventos do Google Agenda da pessoa logada (só quando ela conectou a conta).
+  const range = useMemo(() => {
+    const start = view === "mes" ? startOfWeek(new Date(cursor.getFullYear(), cursor.getMonth(), 1)) : view === "semana" ? startOfWeek(cursor) : cursor;
+    const end = addDays(start, view === "mes" ? 42 : view === "semana" ? 7 : 1);
+    return { timeMin: start.toISOString(), timeMax: end.toISOString() };
+  }, [view, cursor]);
+  const google = useQuery({
+    queryKey: ["google-events", range.timeMin, range.timeMax],
+    queryFn: () => listGoogleEvents({ data: range }),
+  });
+  const googleItems = useMemo<AgendaItem[]>(() => {
+    if (!google.data?.connected) return [];
+    return google.data.events.map((e) => ({
+      id: `g-${e.id}`,
+      date: e.start.slice(0, 10),
+      title: e.title,
+      kind: "reuniao" as AgendaItem["kind"],
+      detail: e.allDay ? "Google Agenda · dia inteiro" : `Google Agenda · ${new Date(e.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
+      done: false,
+    }));
+  }, [google.data]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, AgendaItem[]>();

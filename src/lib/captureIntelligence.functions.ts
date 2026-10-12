@@ -11,8 +11,7 @@ const applyInput=captureInput.extend({
   personIndex:z.number().int().min(0).max(11),
   personId:z.string().uuid().nullable(),
 });
-type Db=any; // Only the new review tables lack generated DB types until next Supabase sync.
-type PersonRow={id:string;name:string};
+type Db=typeof import("@/integrations/supabase/client").supabase;
 type IdentityDecision={person_index:number;person_id:string};
 
 async function findIdentityMatches(db:Db, ownerId:string, proposed:ProposedPerson):Promise<IdentityMatch[]> {
@@ -24,13 +23,13 @@ async function findIdentityMatches(db:Db, ownerId:string, proposed:ProposedPerso
     const {data:methods,error}=await db.from("contact_methods")
       .select("person_id,kind,value_normalized").in("value_normalized",values).limit(20);
     if(error)throw new Error("Erro ao comparar métodos de contato no banco.");
-    const idList=[...new Set((methods??[]).map((m:{person_id:string})=>m.person_id))];
+    const idList=[...new Set((methods??[]).map(m=>m.person_id))];
     if(idList.length) {
       const {data:people,error:e}=await db.from("people").select("id,name")
         .eq("owner_id",ownerId).in("id",idList);
       if(e)throw new Error("Não foi possível comparar pessoas existentes.");
       for(const p of people??[]){
-        const m=(methods??[]).find((x:{person_id:string;kind:string})=>x.person_id===p.id);
+        const m=(methods??[]).find(x=>x.person_id===p.id);
         out.push({id:p.id,name:p.name,method:m?.kind==="email"?"email":"telefone"});
       }
     }
@@ -123,13 +122,34 @@ export const analyzeTextCapture=createServerFn({method:"POST"})
     catch{throw new Error("A IA respondeu fora do formato esperado. O texto foi preservado, mas a análise não foi gravada. Tente novamente mais tarde.");}
     // Save via server-only service role. Caller ownership was checked via RLS.
     const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
-    const {error}=await (supabaseAdmin as any).from("capture_analyses").insert({
+    const {error}=await supabaseAdmin.from("capture_analyses").insert({
       capture_id:capture.id,owner_id:userId,summary:extraction.summary,
       proposals:extraction,status:"sugerido",model_name:"sid",
     });
     // Parallel duplicate analysis: read the winning result, do not charge again on retry.
     if(error && error.code!=="23505")throw new Error("Análise concluída, mas não foi possível salvá-la.");
     return viewAnalysis(supabase,userId,capture.id);
+  });
+
+export const searchExistingCapturePeople=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator(captureInput.extend({
+    personIndex:z.number().int().min(0).max(11),
+    query:z.string().trim().min(2).max(80),
+  }))
+  .handler(async ({context,data})=>{
+    const db:Db=context.supabase;
+    await requireOwnTextCapture(db,context.userId,data.captureId);
+    const analysis=await viewAnalysis(db,context.userId,data.captureId);
+    if(!analysis.people.some(p=>p.index===data.personIndex))
+      throw new Error("Essa pessoa não pertence à análise.");
+    const search=data.query.replace(/[\\%_,()]/g,"").trim();
+    if(search.length<2)return [];
+    const {data:people,error}=await db.from("people")
+      .select("id,name,company,role").eq("owner_id",context.userId)
+      .ilike("name",`%${search}%`).limit(12);
+    if(error)throw new Error("Falha ao procurar contatos.");
+    return people??[];
   });
 
 export const approveCapturePerson=createServerFn({method:"POST"})
@@ -141,8 +161,12 @@ export const approveCapturePerson=createServerFn({method:"POST"})
     const review=await viewAnalysis(db,context.userId,data.captureId);
     const candidate=review.people.find(p=>p.index===data.personIndex);
     if(!candidate)throw new Error("Esta pessoa não faz parte da análise.");
-    if(data.personId && !candidate.matches.some(m=>m.id===data.personId))
-      throw new Error("Selecione uma identidade confirmada entre as correspondências propostas.");
+    if(data.personId) {
+      const {data:existing,error:existingError}=await db.from("people")
+        .select("id").eq("id",data.personId).eq("owner_id",context.userId).maybeSingle();
+      if(existingError||!existing)
+        throw new Error("A pessoa escolhida não está disponível na sua conta.");
+    }
     if(!data.personId && candidate.matches.length)
       throw new Error("Já existem pessoas semelhantes. Escolha a ficha existente ou revise manualmente.");
     const {data:personId,error}=await db.rpc("approve_capture_person",{

@@ -1,0 +1,36 @@
+name: Verify Web Push Implementation
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/web-push*'
+      - 'scripts/push-dispatch.ts'
+      - 'src/lib/push.functions.ts'
+      - 'src/components/app/PushDeviceSettings.tsx'
+      - 'src/routes/_authenticated/configuracoes.tsx'
+      - 'src/routes/__root.tsx'
+      - 'src/integrations/supabase/types.ts'
+      - 'public/sw.js'
+      - 'public/manifest.webmanifest'
+      - 'docs/supabase/migrations/0009_web_push.sql'
+      - '.github/workflows/*push*.yml'
+      - 'package.json'
+      - 'bun.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+      - run: bun run build
+      - run: bunx tsc --noEmit

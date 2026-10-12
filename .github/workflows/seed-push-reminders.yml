@@ -14,28 +14,19 @@ concurrency:
 
 jobs:
   push:
-    # Explicit opt-in, prevents scheduled failures before keys are configured.
+    # No charges or failed scheduled actions before user explicitly enables push.
     if: ${{ vars.SEED_PUSH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 8
-    env:
-      SUPABASE_URL: ${{ secrets.SEED_SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SEED_SUPABASE_SERVICE_ROLE_KEY }}
-      PUSH_VAPID_PUBLIC_KEY: ${{ secrets.PUSH_VAPID_PUBLIC_KEY }}
-      PUSH_VAPID_PRIVATE_KEY: ${{ secrets.PUSH_VAPID_PRIVATE_KEY }}
-      PUSH_VAPID_SUBJECT: ${{ secrets.PUSH_VAPID_SUBJECT }}
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - name: Validate configuration
+      - name: Trigger protected Seed Connection dispatcher
+        env:
+          CRON_SECRET: ${{ secrets.PUSH_CRON_SECRET }}
         run: |
-          test -n "$SUPABASE_URL" || (echo "Missing SEED_SUPABASE_URL" && exit 1)
-          test -n "$SUPABASE_SERVICE_ROLE_KEY" || (echo "Missing SEED_SUPABASE_SERVICE_ROLE_KEY" && exit 1)
-          test -n "$PUSH_VAPID_PUBLIC_KEY" || (echo "Missing PUSH_VAPID_PUBLIC_KEY" && exit 1)
-          test -n "$PUSH_VAPID_PRIVATE_KEY" || (echo "Missing PUSH_VAPID_PRIVATE_KEY" && exit 1)
-          test -n "$PUSH_VAPID_SUBJECT" || (echo "Missing PUSH_VAPID_SUBJECT" && exit 1)
-      - name: Send background reminders
-        run: bun scripts/push-dispatch.ts
+          test -n "$CRON_SECRET" || (echo "Configure PUSH_CRON_SECRET in GitHub Actions Secrets" && exit 1)
+          curl --fail-with-body --silent --show-error --max-time 90 --retry 1 \
+            -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -H "Cache-Control: no-store" \
+            "https://hub.sidneyconexao.com.br/api/push/dispatch"

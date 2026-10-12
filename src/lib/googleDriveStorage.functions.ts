@@ -104,13 +104,21 @@ async function tokenFor(userId: string): Promise<string> {
   });
   return fresh.access_token;
 }
-async function ownerFor(userId: string): Promise<string> {
-  // The administrative owner's UID is deliberately configured on the server;
-  // this ensures collaborators cannot silently switch storage to their Drive.
-  const owner = process.env["GOOGLE_DRIVE_STORAGE_OWNER_UID"] ?? "";
-  if (owner) return owner;
-  if (await storedFor(userId)) return userId; // admin can test before configuring staff
-  throw new Error("Defina GOOGLE_DRIVE_STORAGE_OWNER_UID no servidor para permitir uploads da equipe.");
+async function ownerFor(_requestingUserId: string): Promise<string> {
+  const explicit = process.env["GOOGLE_DRIVE_STORAGE_OWNER_UID"]?.trim();
+  if (explicit) return explicit;
+  // Only admins can connect the owner's Drive. Locate the sole configured
+  // connector server-side, so up to five team users share the same destination
+  // without manually copying an internal Supabase UUID into Secrets.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.from("app_user_connections")
+    .select("user_id").eq("connector_id", CONNECTION).limit(2);
+  if (error) throw new Error("Não foi possível identificar o Drive autorizado.");
+  if (data?.length === 1) return data[0]!.user_id;
+  if (data?.length && data.length > 1) {
+    throw new Error("Mais de uma conta Google Drive vinculada. Defina o proprietário no servidor.");
+  }
+  throw new Error("O Drive ainda precisa ser autorizado por um administrador.");
 }
 async function driveApi(token: string, url: string, opts: RequestInit = {}) {
   const headers = new Headers(opts.headers);

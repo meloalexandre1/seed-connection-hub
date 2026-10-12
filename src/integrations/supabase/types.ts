@@ -71,6 +71,33 @@ export type Database = {
         }
         Relationships: []
       }
+      push_deliveries: {
+        Row: {
+          id: number
+          subscription_id: string
+          event_key: string
+          status: string
+          created_at: string
+          sent_at: string | null
+        }
+        Insert: {
+          id?: never
+          subscription_id: string
+          event_key: string
+          status?: string
+          created_at?: string
+          sent_at?: string | null
+        }
+        Update: {
+          id?: never
+          subscription_id?: string
+          event_key?: string
+          status?: string
+          created_at?: string
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           id: string

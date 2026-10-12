@@ -126,7 +126,7 @@ export function GmailGeminiConnect() {
       <Label htmlFor="gmail-search">Pesquisa Gmail (últimos 180 dias)</Label>
       <div className="flex gap-2">
         <Input id="gmail-search" value={query} maxLength={120} onChange={e=>{setQuery(e.target.value);setSearched(false)}}/>
-        <Button size="sm" onClick={()=>{setSearched(true);void messages.refetch()}}>Buscar</Button>
+        <Button size="sm" onClick={()=>{if(searched) void messages.refetch();else setSearched(true)}}>Buscar</Button>
       </div>
       {messages.isFetching&&<p className="text-xs text-muted-foreground">Consultando os e-mails...</p>}
       {messages.isError&&<p role="alert" className="text-xs text-destructive">{(messages.error as Error).message}</p>}

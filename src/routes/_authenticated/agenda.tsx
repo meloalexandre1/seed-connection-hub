@@ -19,8 +19,9 @@ type View = "dia" | "semana" | "mes";
 const KIND_STYLE: Record<AgendaItem["kind"], string> = {
   prazo: "bg-warning text-primary-foreground",
   followup: "bg-info text-primary-foreground",
+  reuniao: "bg-primary text-primary-foreground",
 };
-const KIND_LABEL = { prazo: "Prazo de tarefa", followup: "Follow-up" };
+const KIND_LABEL = { prazo: "Prazo de tarefa", followup: "Follow-up", reuniao: "Google Agenda" };
 const WD = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const iso = (d: Date) =>
@@ -65,7 +66,7 @@ function AgendaPage() {
 
   const byDate = useMemo(() => {
     const m = new Map<string, AgendaItem[]>();
-    for (const it of items.data ?? []) {
+    for (const it of [...(items.data ?? []), ...googleItems]) {
       const arr = m.get(it.date) ?? [];
       arr.push(it);
       m.set(it.date, arr);

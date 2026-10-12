@@ -27,11 +27,13 @@ function configuration() {
   const clientSecret = (process.env["GOOGLE_GMAIL_CLIENT_SECRET"] || process.env["GOOGLE_DRIVE_CLIENT_SECRET"] || "").trim();
   const origin = (process.env["GOOGLE_GMAIL_APP_ORIGIN"] || process.env["GOOGLE_DRIVE_APP_ORIGIN"] || ORIGIN_DEFAULT).replace(/\/$/, "");
   const secret = process.env["APP_USER_CONNECTION_KEY_SECRET"] || "";
-  return { clientId, clientSecret, origin, secret, ready: !!(clientId && clientSecret && secret && origin.startsWith("https://")) };
+  const enabled = process.env["GMAIL_OAUTH_ENABLED"] === "true";
+  return { clientId, clientSecret, origin, secret, enabled,
+    ready: enabled && !!(clientId && clientSecret && secret && origin.startsWith("https://")) };
 }
 function requireConfig() {
   const cfg = configuration();
-  if (!cfg.ready) throw new Error("Gmail requer Client ID, Client Secret e a chave de conexões configurados no servidor.");
+  if (!cfg.ready) throw new Error("Gmail OAuth ainda não foi habilitado. Configure as permissões Google e GMAIL_OAUTH_ENABLED=true no servidor antes de conectar a caixa de entrada.");
   return cfg;
 }
 const b64url = (b: Uint8Array) =>

@@ -13,9 +13,9 @@
 2. Em Google Auth Platform → Data Access, adicionar `https://www.googleapis.com/auth/gmail.readonly` explicitamente.
 3. Inserir a conta Gmail da pessoa em **Audience → Test users** se o projeto estiver no modo Testing.
 4. No cliente OAuth da Web, adicionar **Authorized redirect URI**: `https://hub.sidneyconexao.com.br/api/oauth/gmail/return`.
-5. O backend usa por padrão o cliente OAuth existente do Drive (`GOOGLE_DRIVE_CLIENT_ID` e `GOOGLE_DRIVE_CLIENT_SECRET`), **mas se esse cliente estiver com erro invalid_client, Gmail também falhará**. Para cliente próprio do Gmail, adicionar os segredos `GOOGLE_GMAIL_CLIENT_ID` e `GOOGLE_GMAIL_CLIENT_SECRET`, correspondentes ao mesmo cliente.
-6. `GOOGLE_DRIVE_APP_ORIGIN` pode fornecer a origem HTTPS publicada. É possível definir `GOOGLE_GMAIL_APP_ORIGIN` se houver necessidade específica. O segredo `APP_USER_CONNECTION_KEY_SECRET` do Lovable é reutilizado sem trocar o valor.
-7. Publicar o app após adicionar os segredos. A primeira importação deve utilizar **e-mail fictício de teste**, não documentos sensíveis.
+5. Após validar as exigências do Google, adicione **GMAIL_OAUTH_ENABLED=true** em Secrets do servidor e publique. Por padrão a leitura de caixa Gmail fica desativada; a importação manual continua funcionando.\n6. O backend usa por padrão o cliente OAuth existente do Drive (`GOOGLE_DRIVE_CLIENT_ID` e `GOOGLE_DRIVE_CLIENT_SECRET`), **mas se esse cliente estiver com erro invalid_client, Gmail também falhará**. Para cliente próprio do Gmail, adicionar os segredos `GOOGLE_GMAIL_CLIENT_ID` e `GOOGLE_GMAIL_CLIENT_SECRET`, correspondentes ao mesmo cliente.
+7. `GOOGLE_DRIVE_APP_ORIGIN` pode fornecer a origem HTTPS publicada. É possível definir `GOOGLE_GMAIL_APP_ORIGIN` se houver necessidade específica. O segredo `APP_USER_CONNECTION_KEY_SECRET` do Lovable é reutilizado sem trocar o valor.
+8. Publicar o app após adicionar os segredos. A primeira importação deve utilizar **e-mail fictício de teste**, não documentos sensíveis.
 
 ## Verificações
 - [ ] A importação manual salva o título e o resumo privado e reaparece após recarregar.

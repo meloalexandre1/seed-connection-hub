@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { describeGoogleDriveOAuthFailure } from "@/lib/googleOAuthDiagnostics";
 import {
   cleanUploadName, isAllowedDriveMime, MAX_UPLOAD_BYTES,
   SEED_DRIVE_FOLDER_ID, verifyUploadedDriveFile,
@@ -180,7 +181,12 @@ export const completeGoogleDriveConnect = createServerFn({ method: "POST" })
         redirect_uri: c.origin + "/api/oauth/drive/return",
       }),
     });
-    if (!res.ok) throw new Error("O Google não concluiu a autorização. Tente novamente.");
+    if (!res.ok) {
+      // Expose a safe, actionable category only. Never expose the raw Google
+      // response, client secret, one-time code or bearer tokens.
+      const details: unknown = await res.json().catch(() => null);
+      throw new Error(describeGoogleDriveOAuthFailure(res.status, details));
+    }
     const t = await res.json() as { access_token?: string; refresh_token?: string; expires_in?: number };
     if (!t.access_token || !t.refresh_token) throw new Error("Google não forneceu acesso permanente. Revogue o consentimento anterior e autorize novamente.");
     await saveFor(context.userId, {

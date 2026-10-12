@@ -1,4 +1,4 @@
-import { startDriveCapture, finishDriveCapture } from "@/server/googleDriveStorage";
+import { startDriveCapture, finishDriveCapture } from "@/lib/googleDriveStorage.functions";
 import { uploadDriveResumable } from "@/services/driveResumable";
 
 /** The short-lived Google upload URL stays in memory and is never logged. */

@@ -150,3 +150,10 @@
 @utility pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0px);
 }
+
+/* Fallback for the publisher-injected attribution badge.
+   Official control: Project settings > Publishing > Hide Lovable badge. */
+#lovable-badge {
+  display: none !important;
+  visibility: hidden !important;
+}

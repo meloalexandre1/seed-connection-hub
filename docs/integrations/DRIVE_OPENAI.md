@@ -37,7 +37,7 @@
    - `APP_USER_CONNECTION_KEY_SECRET` — secret existente para criptografar refresh tokens, base64 de uma chave simétrica segura. Não substitua sem plano de rotação, pois afetaria conexões anteriores.
    - `GOOGLE_DRIVE_PICKER_API_KEY` — chave de API (browser key) com restrição de referer e API Google Picker.
    - `GOOGLE_DRIVE_PICKER_APP_ID` — número do projeto Google Cloud.
-   - `GOOGLE_DRIVE_STORAGE_OWNER_UID` — UUID do usuário proprietário do Drive no Supabase, para impedir que cada funcionário use uma conta de Drive diferente. Obtenha da área admin; não use nomes ou e-mails como chave.
+   - `GOOGLE_DRIVE_STORAGE_OWNER_UID` — **opcional**: só é necessário quando houver mais de um administrador conectando diferentes Drives. Com uma única conta Drive autorizada, o app identifica o proprietário automaticamente no servidor.
 7. No Seed Connection: Configurações → Integrações → **Google Drive — armazenamento** → **Autorizar Google**.
 8. Clique em **Selecionar esta pasta** e conceda acesso no Picker à pasta `Seed Connection — Arquivos` (a existente, ID acima).
 9. O status precisa indicar **Conectado e com acesso à pasta**.
@@ -67,3 +67,41 @@
 - [ ] Falhas sem quota e sem API key aparecem corretamente no SID.
 - [ ] Nenhuma chave, refresh token ou Authorization é registrada em logs ou Git.
 - [ ] Nada é excluído automaticamente do Supabase durante o período de testes.
+
+## Homologação segura — não enviar arquivos pessoais antes de concluir
+
+Execute depois de publicar uma versão de testes, preferencialmente acessível somente aos usuários autorizados.
+
+| Teste | Ação esperada | Critério de aprovação |
+| --- | --- | --- |
+| OAuth de administrador | Fazer login como administrador e clicar Autorizar Google | OAuth conclui sem erro; credenciais não aparecem nos logs nem no navegador |
+| Consentimento restrito | Verificar o escopo solicitado | Somente `drive.file`, sem permissão irrestrita de todo o Drive |
+| Pasta correta | Escolher a pasta `Seed Connection — Arquivos` no Google Picker | Status muda para `Conectado e com acesso à pasta` |
+| Pasta errada | Escolher outra pasta | App rejeita o destino e não habilita uploads |
+| Usuário não admin | Entrar como colaborador comum | Não consegue autorizar/revogar uma conta Google |
+| PDF pequeno | Enviar um PDF fictício e confirmar no Drive e Supabase | Apenas um arquivo no Drive e captura com `external_id=gdrive:<id>` |
+| Tipo inválido | Tentar arquivo executável ou HTML | Upload rejeitado antes de criar sessão |
+| Arquivo grande | Enviar um áudio fictício superior a 8 MiB | Blocos retomáveis e arquivo completo e íntegro no Drive |
+| Falha de rede | Desconectar brevemente durante upload | Sistema informa erro ou retoma via sessão, mas não marca captura concluída incorretamente |
+| Novo acesso | Fechar navegador, abrir de novo | O arquivo continua no Drive; vínculo continua no banco |
+| Outro usuário | Tentar concluir ou recuperar um arquivo de outro usuário | Negado por RLS/checagem de proprietário |
+| Google Drive offline | Simular credenciais inválidas | Falha visível; nenhum dado existente excluído |
+| OpenAI sem saldo | Consultar SID com chave configurada, mas sem faturamento habilitado | Mensagem de falta de cota; nenhum fallback pago para gateway Lovable |
+| Regressão | Enviar um arquivo com integração do Drive ainda desativada | Supabase Storage atual continua disponível |
+
+### Resultado automatizado
+
+Os testes locais de Vitest de validação do arquivo e retomada de upload não utilizam credenciais Google e não movimentam dados do usuário.
+
+O GitHub Actions da PR executa `bun install --frozen-lockfile`, `bun run test`, `bun run build` e `bunx tsc --noEmit`. Veja o check **Verify Drive integration** na PR #3.
+
+### Limites e pendências conhecidos
+
+- O Google Picker exige **consentimento humano explícito**. O conector Lovable App + Chat visto no painel não transfere sozinho credenciais ao código próprio desta PR.
+- A autorização só é concluída após teste em `https://hub.sidneyconexao.com.br`, com origem OAuth e redirecionamento correspondentes.
+- O Google Drive usa metadados privados `appProperties.seedCaptureId` e `seedOwnerId` e o servidor verifica esses dados antes de concluir a captura.
+- Sessões de upload retomável são mantidas em memória. A versão atual **não preserva o ponto de retomada após fechar/derrubar o navegador**, exigindo nova tentativa.
+- Não existe acesso completo dos colaboradores aos downloads pelo app ainda; uma equipe poderá carregar arquivos usando a conta central do Drive, mas a leitura precisa de autorização própria.
+- Áudios/arquivos anexados **diretamente no chat SID** ainda não são processados neste fluxo.
+- Nenhum arquivo antigo será removido do Supabase até migração validada explicitamente.
+- Toda credencial deve permanecer em Secrets do servidor. **Nunca colar tokens no chat**.

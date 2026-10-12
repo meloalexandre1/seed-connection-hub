@@ -36,8 +36,8 @@ export const startGoogleCalendarConnect = createServerFn({ method: "POST" })
       sandboxHost ? `https://${sandboxHost}` : url.origin,
     ).toString();
 
-    const connectionAPIKey = await getConnectionKeyForUser(context.userId, CONNECTOR_ID);
-    const { authorizationUrl } = await authorizeAppUserOAuth({
+    const connectionAPIKey = await (await keyStore()).getConnectionKeyForUser(context.userId, CONNECTOR_ID);
+    const { authorizationUrl } = await (await connector()).authorizeAppUserOAuth({
       gatewayBaseUrl: GATEWAY_BASE_URL,
       connectorId: CONNECTOR_ID,
       appUserId: context.userId,
@@ -53,28 +53,28 @@ export const completeGoogleCalendarConnection = createServerFn({ method: "POST" 
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ code: z.string().min(1) }))
   .handler(async ({ data, context }) => {
-    const { connectionAPIKey, connectorId } = await exchangeAppUserOAuthCode(
+    const { connectionAPIKey, connectorId } = await (await connector()).exchangeAppUserOAuthCode(
       GATEWAY_BASE_URL,
       data.code,
     );
     if (connectorId !== CONNECTOR_ID) {
       throw new Error("OAuth completion returned the wrong connector");
     }
-    await saveConnectionKeyForUser(context.userId, connectorId, connectionAPIKey);
+    await (await keyStore()).saveConnectionKeyForUser(context.userId, connectorId, connectionAPIKey);
     return { ok: true };
   });
 
 export const disconnectGoogleCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const key = await getConnectionKeyForUser(context.userId, CONNECTOR_ID);
+    const key = await (await keyStore()).getConnectionKeyForUser(context.userId, CONNECTOR_ID);
     if (key) {
-      await disconnectAppUser({
+      await (await connector()).disconnectAppUser({
         gatewayBaseUrl: GATEWAY_BASE_URL,
         connectionAPIKey: key,
         connectorId: CONNECTOR_ID,
       });
-      await deleteConnectionKeyForUser(context.userId, CONNECTOR_ID);
+      await (await keyStore()).deleteConnectionKeyForUser(context.userId, CONNECTOR_ID);
     }
     return { ok: true };
   });
@@ -82,9 +82,9 @@ export const disconnectGoogleCalendar = createServerFn({ method: "POST" })
 export const googleCalendarStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const key = await getConnectionKeyForUser(context.userId, CONNECTOR_ID);
+    const key = await (await keyStore()).getConnectionKeyForUser(context.userId, CONNECTOR_ID);
     if (!key) return { connected: false as const };
-    const res = await callAsAppUser({
+    const res = await (await connector()).callAsAppUser({
       gatewayBaseUrl: GATEWAY_BASE_URL,
       connectionAPIKey: key,
       connectorId: CONNECTOR_ID,
@@ -92,7 +92,7 @@ export const googleCalendarStatus = createServerFn({ method: "GET" })
       init: { method: "GET" },
       requiredScopes: GOOGLE_CALENDAR_SCOPES,
     });
-    if (await appUserReconnectRequired(res))
+    if (await (await connector()).appUserReconnectRequired(res))
       return { connected: false as const, reconnectRequired: true as const };
     if (!res.ok) throw new Error(`Google Calendar falhou: ${res.status}`);
     const body = (await res.json()) as { items?: { id: string; summary: string }[] };
@@ -115,7 +115,7 @@ export const listGoogleEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ timeMin: z.string(), timeMax: z.string() }))
   .handler(async ({ data, context }) => {
-    const key = await getConnectionKeyForUser(context.userId, CONNECTOR_ID);
+    const key = await (await keyStore()).getConnectionKeyForUser(context.userId, CONNECTOR_ID);
     if (!key) return { connected: false as const, events: [] as GoogleEventItem[] };
     const qs = new URLSearchParams({
       timeMin: data.timeMin,
@@ -124,7 +124,7 @@ export const listGoogleEvents = createServerFn({ method: "GET" })
       orderBy: "startTime",
       maxResults: "100",
     });
-    const res = await callAsAppUser({
+    const res = await (await connector()).callAsAppUser({
       gatewayBaseUrl: GATEWAY_BASE_URL,
       connectionAPIKey: key,
       connectorId: CONNECTOR_ID,
@@ -132,7 +132,7 @@ export const listGoogleEvents = createServerFn({ method: "GET" })
       init: { method: "GET" },
       requiredScopes: GOOGLE_CALENDAR_SCOPES,
     });
-    if (await appUserReconnectRequired(res))
+    if (await (await connector()).appUserReconnectRequired(res))
       return { connected: false as const, reconnectRequired: true as const, events: [] };
     if (!res.ok) throw new Error(`Google Calendar falhou: ${res.status}`);
     const body = (await res.json()) as {

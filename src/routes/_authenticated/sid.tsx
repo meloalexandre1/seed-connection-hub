@@ -63,7 +63,7 @@ export const Route = createFileRoute("/_authenticated/sid")({
   head: () =>
     pageHead(
       "SID",
-      "Converse com o SID por texto, voz e anexos: perguntar e registrar com revisão.",
+      "Consulte tarefas e contatos sem custo de IA, registre notas e use a Central de Captura para arquivos.",
     ),
   component: SidPage,
 });
@@ -294,7 +294,13 @@ function SidPage() {
     const text = (override ?? input).trim();
     if (!text && pending.length === 0) return;
     if (sending) return;
-    const body = text || "(somente anexos)";
+    // Attachments in this chat are currently local previews only. Do not
+    // pretend to transmit or persist them through the text-only SID endpoint.
+    if (pending.length) {
+      toast.error("Anexos do SID ainda não são enviados. Use a Central de Captura para salvar arquivos com segurança.");
+      return;
+    }
+    const body = text;
     const userMsg: Msg = {
       id: crypto.randomUUID(),
       role: "user",
@@ -744,7 +750,7 @@ function SidPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" side="top" className="w-60">
                     <DropdownMenuLabel className="text-xs text-muted-foreground">
-                      Anexar (fica só no navegador)
+                      Prévia de anexo (não envia)
                     </DropdownMenuLabel>
                     {PICKERS.map(({ key, label, icon: I }) => (
                       <DropdownMenuItem
@@ -837,7 +843,7 @@ function SidPage() {
             </div>
             <p className="mt-1.5 text-center text-[10.5px] text-subtle">
               O SID responde com IA usando apenas os dados que você tem permissão de ver.
-              Anexos ainda não são analisados pela IA.
+              Arquivos anexados nesta conversa ainda não são enviados. Salve-os pela Central de Captura.
             </p>
           </div>
         </div>

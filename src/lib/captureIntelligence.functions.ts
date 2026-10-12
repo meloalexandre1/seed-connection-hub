@@ -24,13 +24,13 @@ async function findIdentityMatches(db:Db, ownerId:string, proposed:ProposedPerso
     const {data:methods,error}=await db.from("contact_methods")
       .select("person_id,kind,value_normalized").in("value_normalized",values).limit(20);
     if(error)throw new Error("Erro ao comparar métodos de contato no banco.");
-    const idList=[...new Set((methods??[]).map(m=>m.person_id))];
+    const idList=[...new Set((methods??[]).map((m:{person_id:string})=>m.person_id))];
     if(idList.length) {
       const {data:people,error:e}=await db.from("people").select("id,name")
         .eq("owner_id",ownerId).in("id",idList);
       if(e)throw new Error("Não foi possível comparar pessoas existentes.");
       for(const p of people??[]){
-        const m=(methods??[]).find(x=>x.person_id===p.id);
+        const m=(methods??[]).find((x:{person_id:string;kind:string})=>x.person_id===p.id);
         out.push({id:p.id,name:p.name,method:m?.kind==="email"?"email":"telefone"});
       }
     }

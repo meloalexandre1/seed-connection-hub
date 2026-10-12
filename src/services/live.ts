@@ -2,7 +2,6 @@
 // Somente o cliente com chave publicável é usado aqui — nunca chaves privilegiadas.
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { normalizeContactKind } from "@/services/contact-kind";
 
 export type PersonRow = Database["public"]["Tables"]["people"]["Row"];
 export type PersonInsert = Database["public"]["Tables"]["people"]["Insert"];
@@ -51,17 +50,6 @@ export const livePeople = {
     return must(await supabase.from("people").select("*").eq("id", id).maybeSingle());
   },
   async create(p: Omit<PersonInsert, "owner_id">, contacts: { kind: string; value: string }[]) {
-    // Validate and normalize before creating the person, so an invalid kind
-    // cannot leave a partial record in the database.
-    const cm = contacts.filter((c) => c.value.trim()).map((c) => {
-      const kind = normalizeContactKind(c.kind);
-      const value = c.value.trim();
-      return {
-        kind,
-        value_raw: value,
-        value_normalized: kind === "email" ? value.toLowerCase() : kind === "telefone" ? value.replace(/\D/g, "") : value,
-      };
-    });
     const owner_id = await uid();
     const row = must(
       await supabase
@@ -70,22 +58,19 @@ export const livePeople = {
         .select()
         .single(),
     );
-    if (cm.length) {
-      const { error } = await supabase.from("contact_methods").insert(
-        cm.map((c) => ({ ...c, person_id: row.id })),
+    const cm = contacts.filter((c) => c.value.trim());
+    if (cm.length)
+      must(
+        await supabase.from("contact_methods").insert(
+          cm.map((c) => ({
+            person_id: row.id,
+            kind: c.kind,
+            value_raw: c.value.trim(),
+            value_normalized:
+              c.kind === "email" ? c.value.trim().toLowerCase() : c.value.replace(/\D/g, ""),
+          })),
+        ),
       );
-      if (error) {
-        // No other records have been added for this newly created person.
-        const rollback = await supabase.from("people").delete().eq("id", row.id);
-        if (rollback.error) {
-          throw new Error(
-            "Falha ao salvar contatos; o cadastro da pessoa pode ter ficado parcialmente salvo. " +
-            "Confira a lista antes de tentar novamente. Detalhe: " + error.message,
-          );
-        }
-        throw new Error("Não foi possível salvar o contato: " + error.message);
-      }
-    }
     return row;
   },
   async update(id: string, patch: Partial<PersonInsert>) {
@@ -98,16 +83,12 @@ export const livePeople = {
     );
   },
   async addContact(personId: string, kind: string, value: string) {
-    const normalizedKind = normalizeContactKind(kind);
-    const trimmed = value.trim();
     must(
       await supabase.from("contact_methods").insert({
         person_id: personId,
-        kind: normalizedKind,
-        value_raw: trimmed,
-        value_normalized:
-          normalizedKind === "email" ? trimmed.toLowerCase() :
-          normalizedKind === "telefone" ? trimmed.replace(/\D/g, "") : trimmed,
+        kind,
+        value_raw: value.trim(),
+        value_normalized: kind === "email" ? value.trim().toLowerCase() : value.replace(/\D/g, ""),
       }),
     );
   },
@@ -233,20 +214,6 @@ export const liveCaptures = {
     );
   },
   async createFile(file: File | Blob, kind: string, label: string, mime: string) {
-    // Drive is preferred only after admin grants access to the designated folder.
-    // Existing private Supabase storage stays in place until authorization succeeds.
-    const { googleDriveStorageStatus } = await import("@/lib/googleDriveStorage.functions");
-    const drive = await googleDriveStorageStatus();
-    if (drive.enabled && !drive.folderReady) {
-      throw new Error("O Google Drive está habilitado, mas ainda não tem acesso à pasta. Solicite ao administrador que confira a autorização.");
-    }
-    if (drive.enabled && drive.folderReady) {
-      const { uploadCaptureToDrive } = await import("@/services/googleDriveUpload");
-      const captureId = await uploadCaptureToDrive(
-        file, kind as "audio" | "video" | "foto" | "arquivo" | "plaud", label, mime,
-      );
-      return must(await supabase.from("captures").select("*").eq("id", captureId).single());
-    }
     const owner_id = await uid();
     const capture = must(
       await supabase

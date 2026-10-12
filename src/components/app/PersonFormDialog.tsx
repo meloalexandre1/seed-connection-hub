@@ -78,7 +78,7 @@ export function PersonFormDialog({
                 priority: f.priority,
               },
               [
-                { kind: "telefone", value: f.phone },
+                { kind: "whatsapp", value: f.phone },
                 { kind: "email", value: f.email },
               ],
             );

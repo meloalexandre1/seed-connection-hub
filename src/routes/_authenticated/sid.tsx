@@ -21,6 +21,7 @@ import {
   Check,
   Pencil,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -546,7 +547,7 @@ function SidPage() {
                     <SeedLogo className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border bg-card px-4 py-2.5 text-sm whitespace-pre-wrap">
-                    {m.text}
+                    {renderMd(m.text)}
                   </div>
                 </article>
               ) : (
@@ -668,6 +669,17 @@ function SidPage() {
                 )
               ),
             )
+          )}
+          {sending && (
+            <div className="flex items-center gap-3" role="status" aria-label="SID pensando">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-lime-line bg-lime-deep">
+                <SeedLogo className="h-5 w-5" />
+              </div>
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                SID pensando…
+              </p>
+            </div>
           )}
           <div ref={endRef} />
         </div>
@@ -853,6 +865,19 @@ function SidPage() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+// Renderiza o mínimo de markdown que a IA usa: **negrito** e quebras de linha.
+function renderMd(text: string): React.ReactNode {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-semibold text-foreground">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
   );
 }
 

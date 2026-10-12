@@ -15,12 +15,6 @@ export async function askSidModel(opts: {
   history: SidChatMessage[];
   question: string;
 }): Promise<string> {
-  // Deliberate opt-in: saving OPENAI_API_KEY alone never changes the SID
-  // provider or incurs OpenAI model usage. LOVABLE stays the default.
-  if (process.env["SID_AI_PROVIDER"] === "openai") {
-    const { askSidViaOpenAI } = await import("./sidOpenAI.server");
-    return askSidViaOpenAI(opts);
-  }
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("IA não configurada no servidor (LOVABLE_API_KEY ausente).");
 

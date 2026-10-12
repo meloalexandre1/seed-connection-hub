@@ -1235,7 +1235,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      approve_capture_person: {
+        Args: { p_capture_id: string; p_person_index: number; p_existing_person_id?: string | null }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "gestor" | "operacional"

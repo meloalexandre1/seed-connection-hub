@@ -12,7 +12,9 @@ create table if not exists public.push_subscriptions (
   updated_at timestamptz not null default now(),
   last_success_at timestamptz,
   constraint push_endpoint_known_provider check (
-    endpoint ~ '^https://(fcm\\.googleapis\\.com|updates\\.push\\.services\\.mozilla\\.com|web\\.push\\.apple\\.com)/'
+    endpoint like 'https://%' and
+    split_part(split_part(endpoint, '://', 2), '/', 1)
+       in ('fcm.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com')
   ),
   constraint push_endpoint_length check (length(endpoint) between 40 and 2048),
   constraint push_keys_length check (

@@ -131,6 +131,27 @@ export const analyzeTextCapture=createServerFn({method:"POST"})
     return viewAnalysis(supabase,userId,capture.id);
   });
 
+export const searchExistingCapturePeople=createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator(captureInput.extend({
+    personIndex:z.number().int().min(0).max(11),
+    query:z.string().trim().min(2).max(80),
+  }))
+  .handler(async ({context,data})=>{
+    const db:Db=context.supabase;
+    await requireOwnTextCapture(db,context.userId,data.captureId);
+    const analysis=await viewAnalysis(db,context.userId,data.captureId);
+    if(!analysis.people.some(p=>p.index===data.personIndex))
+      throw new Error("Essa pessoa não pertence à análise.");
+    const search=data.query.replace(/[\\%_,()]/g,"").trim();
+    if(search.length<2)return [];
+    const {data:people,error}=await db.from("people")
+      .select("id,name,company,role").eq("owner_id",context.userId)
+      .ilike("name",`%${search}%`).limit(12);
+    if(error)throw new Error("Falha ao procurar contatos.");
+    return people??[];
+  });
+
 export const approveCapturePerson=createServerFn({method:"POST"})
   .middleware([requireSupabaseAuth])
   .inputValidator(applyInput)
@@ -140,8 +161,12 @@ export const approveCapturePerson=createServerFn({method:"POST"})
     const review=await viewAnalysis(db,context.userId,data.captureId);
     const candidate=review.people.find(p=>p.index===data.personIndex);
     if(!candidate)throw new Error("Esta pessoa não faz parte da análise.");
-    if(data.personId && !candidate.matches.some(m=>m.id===data.personId))
-      throw new Error("Selecione uma identidade confirmada entre as correspondências propostas.");
+    if(data.personId) {
+      const {data:existing,error:existingError}=await db.from("people")
+        .select("id").eq("id",data.personId).eq("owner_id",context.userId).maybeSingle();
+      if(existingError||!existing)
+        throw new Error("A pessoa escolhida não está disponível na sua conta.");
+    }
     if(!data.personId && candidate.matches.length)
       throw new Error("Já existem pessoas semelhantes. Escolha a ficha existente ou revise manualmente.");
     const {data:personId,error}=await db.rpc("approve_capture_person",{

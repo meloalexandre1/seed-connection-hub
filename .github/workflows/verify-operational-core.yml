@@ -1,0 +1,32 @@
+name: Verify Operational Core
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/sidLocalQueries*'
+      - 'src/lib/sidLocal.server.ts'
+      - 'src/lib/sid.functions.ts'
+      - 'src/lib/driveUploadMode.functions.ts'
+      - 'src/services/live.ts'
+      - 'src/components/app/SavedCapturesInbox.tsx'
+      - 'src/routes/_authenticated/capturar.tsx'
+      - 'src/routes/_authenticated/sid.tsx'
+      - '.github/workflows/verify-operational-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+      - run: bun run build
+      - run: bunx tsc --noEmit

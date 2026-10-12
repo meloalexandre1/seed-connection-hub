@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Mic,
   Square,
@@ -38,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageHeader, Panel, DemoNotice, EmptyState } from "@/components/app/ui-bits";
 import { liveCaptures } from "@/services/live";
+import { SavedCapturesInbox } from "@/components/app/SavedCapturesInbox";
 import type { CaptureKind, CaptureStatus } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { pageHead } from "@/lib/seo";
@@ -88,6 +90,7 @@ const TABS: { key: Modo; label: string; icon: typeof Mic }[] = [
 ];
 
 function CapturePage() {
+  const queryClient = useQueryClient();
   const { modo } = Route.useSearch();
   const [tab, setTab] = useState<Modo>(modo ?? "audio");
   const [items, setItems] = useState<Item[]>([]);
@@ -110,6 +113,7 @@ function CapturePage() {
           ? await liveCaptures.createNote(it.note ?? "", it.label)
           : await liveCaptures.createFile(it.file!, it.kind, it.label, it.mime ?? "application/octet-stream");
       setItems((x) => x.map((y) => (y.id === id ? { ...y, dbId: saved.id, status: "revisar" } : y)));
+      await queryClient.invalidateQueries({ queryKey: ["captures-inbox"] });
       toast.success("Captura salva no seu espaço privado.");
     } catch (e) {
       setStatus(id, "erro");
@@ -253,6 +257,7 @@ function CapturePage() {
         </Panel>
       </div>
 
+      <SavedCapturesInbox />
       <Panel
         className="mt-4"
         title={
@@ -301,11 +306,17 @@ function CapturePage() {
               Adiar
             </Button>
             <Button
-              onClick={() => {
-                if (review?.dbId) void liveCaptures.markReviewed(review.dbId);
-                if (review) setStatus(review.id, "concluido");
-                setReview(null);
-                toast.success("Marcado como revisado.");
+              onClick={async () => {
+                if (!review?.dbId) return;
+                try {
+                  await liveCaptures.markReviewed(review.dbId);
+                  await queryClient.invalidateQueries({ queryKey: ["captures-inbox"] });
+                  setStatus(review.id, "concluido");
+                  setReview(null);
+                  toast.success("Marcado como revisado no banco.");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Não foi possível revisar o registro.");
+                }
               }}
             >
               Marcar como revisado

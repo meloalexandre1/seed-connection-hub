@@ -214,6 +214,19 @@ export const liveAgenda = {
 };
 
 export const liveCaptures = {
+  async list() {
+    const owner_id = await uid();
+    return must(await supabase.from("captures")
+      .select("id,owner_id,title,kind,status,source,received_at,storage_path,external_id,note,error,mime")
+      .eq("owner_id", owner_id)
+      .order("received_at", { ascending: false }).limit(80));
+  },
+  async signedDownloadUrl(storagePath: string): Promise<string> {
+    const result = await supabase.storage.from("captures").createSignedUrl(storagePath, 900);
+    if (result.error || !result.data?.signedUrl)
+      throw new Error(result.error?.message ?? "Não foi possível abrir o arquivo privado.");
+    return result.data.signedUrl;
+  },
   async createNote(note: string, title: string) {
     const owner_id = await uid();
     return must(
@@ -236,11 +249,16 @@ export const liveCaptures = {
     // Drive is preferred only after admin grants access to the designated folder.
     // Existing private Supabase storage stays in place until authorization succeeds.
     const { googleDriveStorageStatus } = await import("@/lib/googleDriveStorage.functions");
-    const drive = await googleDriveStorageStatus();
-    if (drive.enabled && !drive.folderReady) {
+    // A disabled Drive integration must never block or slow ordinary
+    // private Supabase uploads. The mode is a server-side feature flag.
+    const { captureDriveUploadsEnabled } = await import("@/lib/driveUploadMode.functions");
+    const { enabled } = await captureDriveUploadsEnabled();
+    let drive: Awaited<ReturnType<typeof googleDriveStorageStatus>> | null = null;
+    if (enabled) drive = await googleDriveStorageStatus();
+    if (drive?.enabled && !drive.folderReady) {
       throw new Error("O Google Drive está habilitado, mas ainda não tem acesso à pasta. Solicite ao administrador que confira a autorização.");
     }
-    if (drive.enabled && drive.folderReady) {
+    if (drive?.enabled && drive.folderReady) {
       const { uploadCaptureToDrive } = await import("@/services/googleDriveUpload");
       const captureId = await uploadCaptureToDrive(
         file, kind as "audio" | "video" | "foto" | "arquivo" | "plaud", label, mime,

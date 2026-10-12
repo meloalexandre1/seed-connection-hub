@@ -11,7 +11,7 @@ describe("Drive resumable browser uploader", () => {
     const transport = vi.fn().mockResolvedValue(created());
     const id = await uploadDriveResumable(url, blob, "application/pdf", transport, async () => {});
     expect(id).toBe("drive-file-123456789");
-    expect(transport.mock.calls[0][1].headers["Content-Range"]).toBe("bytes 0-11/12");
+    expect(transport.mock.calls[0]?.[1].headers["Content-Range"]).toBe("bytes 0-11/12");
     expect(transport).toHaveBeenCalledTimes(1);
   });
   it("probes upload progress following uncertain network failure", async () => {
@@ -21,8 +21,8 @@ describe("Drive resumable browser uploader", () => {
       .mockResolvedValueOnce(created());
     const id = await uploadDriveResumable(url, blob, "application/pdf", transport, async () => {});
     expect(id).toBe("drive-file-123456789");
-    expect(transport.mock.calls[1][1].headers["Content-Range"]).toBe("bytes */12");
-    expect(transport.mock.calls[2][1].headers["Content-Range"]).toBe("bytes 5-11/12");
+    expect(transport.mock.calls[1]?.[1].headers["Content-Range"]).toBe("bytes */12");
+    expect(transport.mock.calls[2]?.[1].headers["Content-Range"]).toBe("bytes 5-11/12");
   });
   it("rejects a permanent auth or permission error without retrying", async () => {
     const transport = vi.fn().mockResolvedValue(new Response(null,{status: 403}));

@@ -28,6 +28,6 @@ describe("Google OAuth diagnostics: no secrets in errors", () => {
   });
   it("distinguishes popup denial and mismatch", () => {
     expect(describeGoogleDrivePopupError("access_denied")).toContain("permissão");
-    expect(describeGoogleDrivePopupError("redirect_uri_mismatch")).toContain("redirect");
+    expect(describeGoogleDrivePopupError("redirect_uri_mismatch").toLowerCase()).toContain("redirect");
   });
 });

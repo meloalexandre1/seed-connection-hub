@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Seed Connection",
+  "short_name": "Seed",
+  "description": "Inteligência e relacionamento da Seed Connection",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B0D0A",
+  "theme_color": "#0B0D0A",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

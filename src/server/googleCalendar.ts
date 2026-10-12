@@ -49,7 +49,7 @@ export const startGoogleCalendarConnect = createServerFn({ method: "POST" })
       appUserId: context.userId,
       clientAPIKey: clientKey(),
       returnUrl,
-      connectionAPIKey: connectionAPIKey ?? undefined,
+      ...(connectionAPIKey ? { connectionAPIKey } : {}),
       credentialsConfiguration: { scopes: GOOGLE_CALENDAR_SCOPES },
     });
     return { authorizationUrl };
@@ -114,7 +114,7 @@ export interface GoogleEventItem {
   start: string; // ISO date or datetime
   end: string;
   allDay: boolean;
-  htmlLink?: string;
+  htmlLink?: string | undefined;
 }
 
 export const listGoogleEvents = createServerFn({ method: "GET" })

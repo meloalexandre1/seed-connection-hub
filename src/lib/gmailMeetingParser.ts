@@ -5,7 +5,7 @@ export type GmailPart = {
   parts?: GmailPart[];
 };
 export function decodeGmailBase64Url(data: string): string {
-  if (!/^[A-Za-z0-9_-]*$/.test(data) || data.length > 500_000)
+  if (!/^[A-Za-z0-9_-]*={0,2}$/.test(data) || data.length > 500_000)
     throw new Error("Conteúdo Gmail inválido ou maior que o permitido.");
   const base64 = data.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(data.length / 4) * 4, "=");
   const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));

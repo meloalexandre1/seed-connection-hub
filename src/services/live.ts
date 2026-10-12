@@ -236,7 +236,7 @@ export const liveCaptures = {
     // Google Drive is preferred only after explicit, verified authorization.
     // Without Google OAuth configured, the existing private Supabase Storage
     // remains active. No extra copy is saved in Supabase on a Drive upload.
-    const { googleDriveStorageStatus } = await import("@/server/googleDriveStorage");
+    const { googleDriveStorageStatus } = await import("@/lib/googleDriveStorage.functions");
     const drive = await googleDriveStorageStatus();
     if (drive.folderReady) {
       const { uploadCaptureToDrive } = await import("@/services/googleDriveUpload");

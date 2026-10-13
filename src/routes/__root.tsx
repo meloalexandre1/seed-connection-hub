@@ -36,10 +36,13 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
-  console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    // Only the local development server may receive raw error stacks.
+    // Production errors can contain private meeting text or database details.
+    if (import.meta.env.DEV) {
+      reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    }
   }, [error]);
 
   return (

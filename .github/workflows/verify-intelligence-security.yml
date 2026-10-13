@@ -1,0 +1,29 @@
+name: Verify Intelligence and Security Repairs
+on:
+  pull_request:
+    paths:
+      - "src/server/aiSafety.server*"
+      - "src/lib/sid.functions.ts"
+      - "src/lib/captureIntelligence.functions.ts"
+      - "src/routes/__root.tsx"
+      - "docs/supabase/migrations/0011_expand_fact_kinds.sql"
+      - "docs/supabase/migrations/0012_ai_integrity_limits.sql"
+      - "docs/supabase/migrations/0013_capture_source_fingerprint.sql"
+      - "docs/security/**"
+      - ".github/workflows/verify-intelligence-security.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+      - run: bun run build
+      - run: bunx tsc --noEmit

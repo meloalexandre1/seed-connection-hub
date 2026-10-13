@@ -111,6 +111,8 @@ export const askSid = createServerFn({ method: "POST" })
       ctx,
     ].join("\n");
 
+    const {claimAiRequest}=await import("@/server/aiSafety.server");
+    await claimAiRequest(userId,"sid_chat");
     const { askSidModel } = await import("./sid.server");
     answer = await askSidModel({ system, history: data.history, question: data.question });
 

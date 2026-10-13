@@ -122,12 +122,17 @@ export const analyzeTextCapture=createServerFn({method:"POST"})
     let extraction;
     try{extraction=parseMeetingExtraction(raw,source);}
     catch{throw new Error("A IA respondeu fora do formato esperado. O texto foi preservado, mas a análise não foi gravada. Tente novamente mais tarde.");}
+    // Seal the exact text sent to the model. Database trigger rejects
+    // a changed meeting note at INSERT, even if it was edited concurrently.
+    const {sha256MeetingText}=await import("@/server/aiSafety.server");
+    const source_sha256=await sha256MeetingText(source);
     // Save via server-only service role. Caller ownership was checked via RLS.
     const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
-    const {error}=await supabaseAdmin.from("capture_analyses").insert({
+    const analysisRow={
       capture_id:capture.id,owner_id:userId,summary:extraction.summary,
-      proposals:extraction,status:"sugerido",model_name:"sid",
-    });
+      proposals:extraction,status:"sugerido",model_name:"sid",source_sha256,
+    };
+    const {error}=await supabaseAdmin.from("capture_analyses").insert(analysisRow);
     // Parallel duplicate analysis: read the winning result, do not charge again on retry.
     if(error && error.code!=="23505")throw new Error("Análise concluída, mas não foi possível salvá-la.");
     return viewAnalysis(supabase,userId,capture.id);

@@ -171,7 +171,7 @@ export const approveCapturePerson=createServerFn({method:"POST"})
       throw new Error("Já existem pessoas semelhantes. Escolha a ficha existente ou revise manualmente.");
     const {data:personId,error}=await db.rpc("approve_capture_person",{
       p_capture_id:data.captureId,p_person_index:data.personIndex,
-      p_existing_person_id:data.personId,
+      p_existing_person_id:data.personId ?? undefined,
     });
     if(error)throw new Error(error.message||"Não foi possível aplicar a revisão.");
     return {personId};

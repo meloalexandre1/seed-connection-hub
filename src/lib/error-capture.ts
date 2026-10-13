@@ -54,6 +54,13 @@ function isErrorLike(value: unknown): value is Error {
 // recorded for consumeLastCapturedError and expanded before serialization.
 const originalConsoleError = console.error.bind(console);
 console.error = (...args: unknown[]) => {
+  // Production logs must not contain meeting text, OAuth codes, personal data,
+  // or backend configuration that may accidentally be attached to exceptions.
+  if (import.meta.env.PROD) {
+    for (const arg of args) if (isErrorLike(arg)) record(arg);
+    originalConsoleError("[Seed] Server error; details withheld in production.");
+    return;
+  }
   const expanded = args.map((arg) => {
     if (!isErrorLike(arg)) return arg;
     record(arg);

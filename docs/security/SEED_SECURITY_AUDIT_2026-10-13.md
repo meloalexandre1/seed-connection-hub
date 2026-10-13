@@ -127,3 +127,9 @@ Data: 2026-10-13 · Revisão estática orientada a OWASP Top 10 / API Security e
 5. Revisar headers, CORS, configuração OAuth e monitoramento na implantação efetiva.
 
 **Conclusão:** melhorias verificadas em banco/código, mas auditoria independente de segurança e teste de invasão ainda pendentes. Não declarar esta aplicação segura para produção sensível com base apenas nesta revisão.
+
+## Revisão complementar (mesma entrega)
+
+- **Corrida de atualização da fonte:** identificado risco de `captures.note` ser editada durante a chamada de modelo. Em `0014_capture_analysis_race_guard.sql`, a trigger agora exige que o servidor apresente o SHA-256 do texto **exatamente enviado ao modelo** e rejeita o INSERT se não corresponder ao conteúdo atual no banco. O fluxo `analyzeTextCapture` passou a incluir `source_sha256`. Não foram apagados dados nem análises.
+- **Logs de erros de servidor:** `src/lib/error-capture.ts` encapsulava `console.error` e expandia stacks/cadeias de causa, o que podia expor conteúdo de exceções em logs de produção. O wrapper agora emite apenas mensagem genérica em `import.meta.env.PROD`; a expansão detalhada permanece apenas em desenvolvimento. Verificar log collector externo e eventual retenção anterior separadamente.
+- **Limitação:** a análise semântica via Lovable AI ainda carece de execução real com texto fictício após deploy. Testes unitários e compilação não confirmam o modelo externo, cota nem processamento ponta a ponta.

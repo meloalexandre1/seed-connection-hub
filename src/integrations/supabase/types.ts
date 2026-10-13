@@ -79,6 +79,7 @@ export type Database = {
           owner_id: string
           proposals: Json
           status: string
+          source_sha256: string | null
           summary: string
           updated_at: string
         }
@@ -89,6 +90,7 @@ export type Database = {
           owner_id: string
           proposals?: Json
           status?: string
+          source_sha256?: string | null
           summary?: string
           updated_at?: string
         }
@@ -99,6 +101,7 @@ export type Database = {
           owner_id?: string
           proposals?: Json
           status?: string
+          source_sha256?: string | null
           summary?: string
           updated_at?: string
         }

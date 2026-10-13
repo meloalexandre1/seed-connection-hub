@@ -25,6 +25,9 @@ import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedPessoasIndexRouteImport } from './routes/_authenticated/pessoas.index'
 import { Route as AuthenticatedPessoasIdRouteImport } from './routes/_authenticated/pessoas.$id'
 import { Route as AuthenticatedPessoasImportarRouteImport } from './routes/_authenticated/pessoas.importar'
+import { Route as ApiPushDispatchRouteImport } from './routes/api/push/dispatch'
+import { Route as ApiOauthDriveReturnRouteImport } from './routes/api/oauth/drive/return'
+import { Route as ApiOauthGmailReturnRouteImport } from './routes/api/oauth/gmail/return'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -110,6 +113,21 @@ const AuthenticatedPessoasImportarRoute =
     path: '/pessoas/importar',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPushDispatchRoute = ApiPushDispatchRouteImport.update({
+  id: '/api/push/dispatch',
+  path: '/api/push/dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOauthDriveReturnRoute = ApiOauthDriveReturnRouteImport.update({
+  id: '/api/oauth/drive/return',
+  path: '/api/oauth/drive/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOauthGmailReturnRoute = ApiOauthGmailReturnRouteImport.update({
+  id: '/api/oauth/gmail/return',
+  path: '/api/oauth/gmail/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
   id: '/api/oauth/google/return',
   path: '/api/oauth/google/return',
@@ -131,7 +149,10 @@ export interface FileRoutesByFullPath {
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/pessoas/importar': typeof AuthenticatedPessoasImportarRoute
+  '/api/push/dispatch': typeof ApiPushDispatchRoute
   '/pessoas/': typeof AuthenticatedPessoasIndexRoute
+  '/api/oauth/drive/return': typeof ApiOauthDriveReturnRoute
+  '/api/oauth/gmail/return': typeof ApiOauthGmailReturnRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
 }
 export interface FileRoutesByTo {
@@ -149,7 +170,10 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/pessoas/importar': typeof AuthenticatedPessoasImportarRoute
+  '/api/push/dispatch': typeof ApiPushDispatchRoute
   '/pessoas': typeof AuthenticatedPessoasIndexRoute
+  '/api/oauth/drive/return': typeof ApiOauthDriveReturnRoute
+  '/api/oauth/gmail/return': typeof ApiOauthGmailReturnRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
 }
 export interface FileRoutesById {
@@ -169,7 +193,10 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/_authenticated/pessoas/importar': typeof AuthenticatedPessoasImportarRoute
+  '/api/push/dispatch': typeof ApiPushDispatchRoute
   '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
+  '/api/oauth/drive/return': typeof ApiOauthDriveReturnRoute
+  '/api/oauth/gmail/return': typeof ApiOauthGmailReturnRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
 }
 export interface FileRouteTypes {
@@ -189,7 +216,10 @@ export interface FileRouteTypes {
     | '/tarefas'
     | '/pessoas/$id'
     | '/pessoas/importar'
+    | '/api/push/dispatch'
     | '/pessoas/'
+    | '/api/oauth/drive/return'
+    | '/api/oauth/gmail/return'
     | '/api/oauth/google/return'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -207,7 +237,10 @@ export interface FileRouteTypes {
     | '/'
     | '/pessoas/$id'
     | '/pessoas/importar'
+    | '/api/push/dispatch'
     | '/pessoas'
+    | '/api/oauth/drive/return'
+    | '/api/oauth/gmail/return'
     | '/api/oauth/google/return'
   id:
     | '__root__'
@@ -226,13 +259,19 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/pessoas/$id'
     | '/_authenticated/pessoas/importar'
+    | '/api/push/dispatch'
     | '/_authenticated/pessoas/'
+    | '/api/oauth/drive/return'
+    | '/api/oauth/gmail/return'
     | '/api/oauth/google/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPushDispatchRoute: typeof ApiPushDispatchRoute
+  ApiOauthDriveReturnRoute: typeof ApiOauthDriveReturnRoute
+  ApiOauthGmailReturnRoute: typeof ApiOauthGmailReturnRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
 }
 
@@ -350,6 +389,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPessoasImportarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/push/dispatch': {
+      id: '/api/push/dispatch'
+      path: '/api/push/dispatch'
+      fullPath: '/api/push/dispatch'
+      preLoaderRoute: typeof ApiPushDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/drive/return': {
+      id: '/api/oauth/drive/return'
+      path: '/api/oauth/drive/return'
+      fullPath: '/api/oauth/drive/return'
+      preLoaderRoute: typeof ApiOauthDriveReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/oauth/gmail/return': {
+      id: '/api/oauth/gmail/return'
+      path: '/api/oauth/gmail/return'
+      fullPath: '/api/oauth/gmail/return'
+      preLoaderRoute: typeof ApiOauthGmailReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/oauth/google/return': {
       id: '/api/oauth/google/return'
       path: '/api/oauth/google/return'
@@ -400,6 +460,9 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPushDispatchRoute: ApiPushDispatchRoute,
+  ApiOauthDriveReturnRoute: ApiOauthDriveReturnRoute,
+  ApiOauthGmailReturnRoute: ApiOauthGmailReturnRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
 }
 export const routeTree = rootRouteImport

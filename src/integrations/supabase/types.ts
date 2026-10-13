@@ -71,80 +71,85 @@ export type Database = {
         }
         Relationships: []
       }
-      push_deliveries: {
-        Row: {
-          id: number
-          subscription_id: string
-          event_key: string
-          status: string
-          created_at: string
-          sent_at: string | null
-        }
-        Insert: {
-          id?: never
-          subscription_id: string
-          event_key: string
-          status?: string
-          created_at?: string
-          sent_at?: string | null
-        }
-        Update: {
-          id?: never
-          subscription_id?: string
-          event_key?: string
-          status?: string
-          created_at?: string
-          sent_at?: string | null
-        }
-        Relationships: []
-      }
-      push_subscriptions: {
-        Row: {
-          id: string
-          user_id: string
-          endpoint: string
-          p256dh: string
-          auth: string
-          enabled: boolean
-          created_at: string
-          updated_at: string
-          last_success_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          endpoint: string
-          p256dh: string
-          auth: string
-          enabled?: boolean
-          created_at?: string
-          updated_at?: string
-          last_success_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          endpoint?: string
-          p256dh?: string
-          auth?: string
-          enabled?: boolean
-          created_at?: string
-          updated_at?: string
-          last_success_at?: string | null
-        }
-        Relationships: []
-      }
       capture_analyses: {
-        Row: { capture_id: string; owner_id: string; summary: string; proposals: Json; status: string; model_name: string; analyzed_at: string; updated_at: string }
-        Insert: { capture_id: string; owner_id: string; summary?: string; proposals?: Json; status?: string; model_name?: string; analyzed_at?: string; updated_at?: string }
-        Update: { capture_id?: string; owner_id?: string; summary?: string; proposals?: Json; status?: string; model_name?: string; analyzed_at?: string; updated_at?: string }
-        Relationships: []
+        Row: {
+          analyzed_at: string
+          capture_id: string
+          model_name: string
+          owner_id: string
+          proposals: Json
+          status: string
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          analyzed_at?: string
+          capture_id: string
+          model_name?: string
+          owner_id: string
+          proposals?: Json
+          status?: string
+          summary?: string
+          updated_at?: string
+        }
+        Update: {
+          analyzed_at?: string
+          capture_id?: string
+          model_name?: string
+          owner_id?: string
+          proposals?: Json
+          status?: string
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_analyses_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: true
+            referencedRelation: "captures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       capture_analysis_decisions: {
-        Row: { capture_id: string; person_index: number; person_id: string; owner_id: string; reviewed_at: string }
-        Insert: { capture_id: string; person_index: number; person_id: string; owner_id: string; reviewed_at?: string }
-        Update: { capture_id?: string; person_index?: number; person_id?: string; owner_id?: string; reviewed_at?: string }
-        Relationships: []
+        Row: {
+          capture_id: string
+          owner_id: string
+          person_id: string
+          person_index: number
+          reviewed_at: string
+        }
+        Insert: {
+          capture_id: string
+          owner_id: string
+          person_id: string
+          person_index: number
+          reviewed_at?: string
+        }
+        Update: {
+          capture_id?: string
+          owner_id?: string
+          person_id?: string
+          person_index?: number
+          reviewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_analysis_decisions_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "capture_analyses"
+            referencedColumns: ["capture_id"]
+          },
+          {
+            foreignKeyName: "capture_analysis_decisions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       captures: {
         Row: {
@@ -946,6 +951,77 @@ export type Database = {
         }
         Relationships: []
       }
+      push_deliveries: {
+        Row: {
+          created_at: string
+          event_key: string
+          id: number
+          sent_at: string | null
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          id?: never
+          sent_at?: string | null
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          id?: never
+          sent_at?: string | null
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          enabled: boolean
+          endpoint: string
+          id: string
+          last_success_at: string | null
+          p256dh: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          enabled?: boolean
+          endpoint: string
+          id?: string
+          last_success_at?: string | null
+          p256dh: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          enabled?: boolean
+          endpoint?: string
+          id?: string
+          last_success_at?: string | null
+          p256dh?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       relationships: {
         Row: {
           a: string
@@ -1236,7 +1312,11 @@ export type Database = {
     }
     Functions: {
       approve_capture_person: {
-        Args: { p_capture_id: string; p_person_index: number; p_existing_person_id?: string | null }
+        Args: {
+          p_capture_id: string
+          p_existing_person_id?: string
+          p_person_index: number
+        }
         Returns: string
       }
     }

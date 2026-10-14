@@ -55,3 +55,26 @@ export function pickUniqueMatches(matches:IdentityMatch[]):IdentityMatch[]{
     seen.add(m.id);return true;
   });
 }
+
+export const proposedTask = z.object({
+  title: z.string().trim().min(4).max(200),
+  responsible: z.enum(["nos","cliente"]),
+  person_name: z.string().trim().max(130).nullable().optional(),
+  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  priority: z.enum(["alta","media","baixa"]).default("media"),
+  evidence: z.string().trim().min(5).max(500),
+}).strict();
+export const taskExtraction = z.object({ tasks: z.array(proposedTask).max(20) }).strict();
+export type ProposedTask = z.infer<typeof proposedTask>;
+
+/** Parses model output and drops tasks whose evidence is not literally in the source. */
+export function parseTaskExtraction(raw:string, source:string):ProposedTask[] {
+  const normalized=raw.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,"");
+  const data=taskExtraction.parse(JSON.parse(normalized));
+  const src=source.toLocaleLowerCase("pt-BR");
+  return data.tasks.filter(t=>src.includes(t.evidence.toLocaleLowerCase("pt-BR")));
+}
+/** Our tasks start in "a fazer"; tasks delegated to the client wait on them. */
+export function taskStatusFor(responsible:"nos"|"cliente"){
+  return responsible==="cliente"?"aguardando":"a_fazer";
+}

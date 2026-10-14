@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { liveCaptures } from "@/services/live";
 import { CaptureAnalysisPanel } from "@/components/app/CaptureAnalysisPanel";
+import { PdfTextPreparation } from "@/components/app/PdfTextPreparation";
 
 /**
  * Saved records are read from Supabase on every page load, not a local queue.
@@ -41,7 +42,7 @@ export function SavedCapturesInbox() {
   const rows = captures.data ?? [];
   const pending = rows.filter(r => r.status === "revisar").length;
   return (
-    <section className="mt-5 rounded-2xl border bg-card p-4 space-y-3" aria-label="Capturas salvas">
+    <section id="registros-salvos" className="mt-5 rounded-2xl border bg-card p-4 space-y-3" aria-label="Capturas salvas">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 font-semibold"><Archive className="h-4 w-4 text-primary"/> Registros salvos no banco</h2>
@@ -65,7 +66,7 @@ export function SavedCapturesInbox() {
                 {c.kind} · {c.status} · {new Date(c.received_at).toLocaleString("pt-BR")}
               </p>
             </div>
-            {c.status==="concluido"&&<CheckCircle2 className="h-4 w-4 shrink-0 text-success" aria-label="Revisado"/>}
+            {c.status==="concluido"&&<CheckCircle2 className="h-4 w-4 shrink-0 text-success" aria-label="Marcado como revisado"/>}
           </div>
           {c.status==="erro"&&<p role="alert" className="text-xs text-destructive">{c.error ?? "Erro no envio"}</p>}
           <div className="flex flex-wrap gap-2">
@@ -84,7 +85,11 @@ export function SavedCapturesInbox() {
               <CheckCircle2 className="h-4 w-4"/> Marcar como revisado
             </Button>}
           </div>
+          {c.mime==="application/pdf" && c.storage_path && !c.note?.trim() &&
+            <PdfTextPreparation captureId={c.id} storagePath={c.storage_path}/>}
           {c.note&&c.note.length>=40&&<CaptureAnalysisPanel captureId={c.id}/>}
+          {c.note&&c.note.trim().length>0&&c.note.trim().length<40&&
+            <p className="text-xs text-muted-foreground">Texto salvo, mas insuficiente para análise (mínimo 40 caracteres).</p>}
           {c.note&&expanded===c.id&&
             <div className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/40 p-3 text-xs">
               {c.note}

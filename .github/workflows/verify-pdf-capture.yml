@@ -1,0 +1,27 @@
+name: Verify PDF to SID flow
+on:
+  pull_request:
+    paths:
+      - 'src/routes/_authenticated/capturar.tsx'
+      - 'src/components/app/SavedCapturesInbox.tsx'
+      - 'src/components/app/PdfTextPreparation.tsx'
+      - 'src/lib/pdfCapture.functions.ts'
+      - 'src/lib/pdfTextExtraction.client.ts'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/verify-pdf-capture.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+      - run: bun run build
+      - run: bunx tsc --noEmit

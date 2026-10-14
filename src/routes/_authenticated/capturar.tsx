@@ -14,19 +14,10 @@ import {
   RotateCcw,
   Trash2,
   Smartphone,
-  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PageHeader, Panel, DemoNotice, EmptyState } from "@/components/app/ui-bits";
+import { PageHeader, Panel, EmptyState } from "@/components/app/ui-bits";
 import { liveCaptures } from "@/services/live";
 import { SavedCapturesInbox } from "@/components/app/SavedCapturesInbox";
 import type { CaptureKind, CaptureStatus } from "@/types/domain";
@@ -76,7 +67,7 @@ const STATUS: Record<CaptureStatus, { label: string; cls: string }> = {
   gravando: { label: "Gravando", cls: "text-destructive" },
   enviando: { label: "Enviando", cls: "text-info" },
   processando: { label: "Processando", cls: "text-info" },
-  revisar: { label: "Enviado · aguardando análise", cls: "text-warning" },
+  revisar: { label: "Salvo · pendente de preparação ou análise", cls: "text-warning" },
   concluido: { label: "Concluído", cls: "text-success" },
   erro: { label: "Falha no envio", cls: "text-destructive" },
 };
@@ -94,7 +85,6 @@ function CapturePage() {
   const { modo } = Route.useSearch();
   const [tab, setTab] = useState<Modo>(modo ?? "audio");
   const [items, setItems] = useState<Item[]>([]);
-  const [review, setReview] = useState<Item | null>(null);
   useEffect(() => {
     if (modo) setTab(modo);
   }, [modo]);
@@ -126,12 +116,10 @@ function CapturePage() {
       <PageHeader eyebrow="Central de Captura" title="Capturar">
         Tudo vira um registro de entrada com origem, data e estado de processamento.
       </PageHeader>
-      <div className="mb-4">
-        <DemoNotice>
-          As capturas são <b>salvas de verdade</b> no seu espaço privado. A análise por IA
-          (transcrição, resumo e sugestões) ainda não está conectada — por isso tudo chega como
-          “aguardando análise”.
-        </DemoNotice>
+      <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+          As capturas são salvas no seu espaço privado. Para PDFs, prepare o texto em
+          “Registros salvos no banco” antes de analisar com o SID. Notas e resumos em texto
+          podem ser analisados com a IA configurada; áudios ainda precisam de transcrição.
       </div>
 
       <div role="tablist" className="mb-4 grid grid-cols-5 gap-2">
@@ -245,8 +233,8 @@ function CapturePage() {
                       </Button>
                     )}
                     {it.status === "revisar" && (
-                      <Button size="sm" onClick={() => setReview(it)}>
-                        Revisar sugestões
+                      <Button size="sm" onClick={() => document.getElementById("registros-salvos")?.scrollIntoView({behavior:"smooth",block:"start"})}>
+                        {it.mime==="application/pdf" ? "Preparar texto do PDF" : "Abrir registro salvo"}
                       </Button>
                     )}
                   </div>
@@ -275,55 +263,7 @@ function CapturePage() {
         </p>
       </Panel>
 
-      <Dialog open={!!review} onOpenChange={(o) => !o && setReview(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Revisar sugestões</DialogTitle>
-            <DialogDescription>{review?.label}</DialogDescription>
-          </DialogHeader>
-          <DemoNotice>
-            Nenhuma IA analisou este material. Com o backend, aqui apareceriam transcrição, resumo,
-            pessoas encontradas, necessidades e tarefas propostas — cada uma para aprovar, editar,
-            ignorar ou adiar.
-          </DemoNotice>
-          <ul className="space-y-2 text-sm">
-            {[
-              "Transcrição / extração",
-              "Pessoas mencionadas (correspondências incertas)",
-              "Necessidades e tarefas propostas",
-            ].map((s) => (
-              <li
-                key={s}
-                className="flex items-center gap-2 rounded-xl border border-dashed p-3 text-muted-foreground"
-              >
-                <Clock className="h-4 w-4" />
-                {s}: aguardando backend
-              </li>
-            ))}
-          </ul>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setReview(null)}>
-              Adiar
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!review?.dbId) return;
-                try {
-                  await liveCaptures.markReviewed(review.dbId);
-                  await queryClient.invalidateQueries({ queryKey: ["captures-inbox"] });
-                  setStatus(review.id, "concluido");
-                  setReview(null);
-                  toast.success("Marcado como revisado no banco.");
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Não foi possível revisar o registro.");
-                }
-              }}
-            >
-              Marcar como revisado
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

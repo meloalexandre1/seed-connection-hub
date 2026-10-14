@@ -34,3 +34,20 @@ describe("Grounded meeting extraction",()=>{
     ])).toHaveLength(1);
   });
 });
+
+import { parseTaskExtraction, taskStatusFor } from "./captureIntelligenceSchema";
+describe("tarefas da reunião", () => {
+  const src = "Ficou combinado que o Carlos envia a proposta até sexta e nós marcamos a visita.";
+  it("descarta tarefa sem evidência literal", () => {
+    const raw = JSON.stringify({ tasks: [
+      { title: "Enviar proposta", responsible: "cliente", person_name: "Carlos", due_date: null, priority: "alta", evidence: "o Carlos envia a proposta até sexta" },
+      { title: "Inventada", responsible: "nos", evidence: "isso nunca foi dito" },
+    ]});
+    const t = parseTaskExtraction(raw, src);
+    expect(t.map(x => x.title)).toEqual(["Enviar proposta"]);
+  });
+  it("tarefa do cliente fica aguardando, a nossa a fazer", () => {
+    expect(taskStatusFor("cliente")).toBe("aguardando");
+    expect(taskStatusFor("nos")).toBe("a_fazer");
+  });
+});

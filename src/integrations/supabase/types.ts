@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_request_limits: {
+        Row: {
+          operation: string
+          requests: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          operation: string
+          requests?: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          operation?: string
+          requests?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       app_user_connections: {
         Row: {
           connection_key_ciphertext: string
@@ -78,8 +99,8 @@ export type Database = {
           model_name: string
           owner_id: string
           proposals: Json
-          status: string
           source_sha256: string | null
+          status: string
           summary: string
           updated_at: string
         }
@@ -89,8 +110,8 @@ export type Database = {
           model_name?: string
           owner_id: string
           proposals?: Json
-          status?: string
           source_sha256?: string | null
+          status?: string
           summary?: string
           updated_at?: string
         }
@@ -100,8 +121,8 @@ export type Database = {
           model_name?: string
           owner_id?: string
           proposals?: Json
-          status?: string
           source_sha256?: string | null
+          status?: string
           summary?: string
           updated_at?: string
         }
@@ -1321,6 +1342,10 @@ export type Database = {
           p_person_index: number
         }
         Returns: string
+      }
+      claim_ai_request: {
+        Args: { p_operation: string; p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

@@ -200,7 +200,7 @@ async function extractTasks(db:Db,userId:string,captureId:string){
     .eq("capture_id",captureId).eq("owner_id",userId).maybeSingle();
   if(error||!row)throw new Error("Analise a reunião primeiro.");
   const proposals=(row.proposals??{}) as Record<string,unknown>;
-  if(Array.isArray(proposals.tasks))return; // already extracted; never re-bill
+  if(Array.isArray(proposals["tasks"]))return; // already extracted; never re-bill
   const source=capture.note!.slice(0,30000);
   const hoje=new Date().toISOString().slice(0,10);
   const system=[
@@ -261,7 +261,7 @@ export const approveCaptureTask=createServerFn({method:"POST"})
     const {data:row}=await supabaseAdmin.from("capture_analyses").select("proposals")
       .eq("capture_id",data.captureId).eq("owner_id",context.userId).single();
     const p=(row?.proposals??{}) as Record<string,unknown>;
-    const decisions=[...(Array.isArray(p.task_decisions)?p.task_decisions:[]),{index:data.taskIndex,task_id:created.id}];
+    const decisions=[...(Array.isArray(p["task_decisions"])?p["task_decisions"]:[]),{index:data.taskIndex,task_id:created.id}];
     await supabaseAdmin.from("capture_analyses").update({proposals:{...p,task_decisions:decisions} as never})
       .eq("capture_id",data.captureId).eq("owner_id",context.userId);
     return {taskId:created.id};

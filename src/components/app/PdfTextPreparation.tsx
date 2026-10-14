@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createClientOnlyFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileSearch, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -6,6 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { saveExtractedPdfText } from "@/lib/pdfCapture.functions";
+
+// TanStack Start guarantees this import only exists in the browser bundle.
+const extractTextInBrowser=createClientOnlyFn(async (blob:Blob)=>{
+  const {extractLocalPdfText}=await import("@/lib/pdfTextExtraction.client");
+  return extractLocalPdfText(blob);
+});
 
 /** Associates text with a PDF already stored in the user's private bucket. */
 export function PdfTextPreparation({captureId,storagePath}:{
@@ -25,8 +32,7 @@ export function PdfTextPreparation({captureId,storagePath}:{
     try{
       const {data,error}=await supabase.storage.from("captures").download(storagePath);
       if(error||!data)throw new Error("Não foi possível baixar seu PDF privado.");
-      const {extractLocalPdfText}=await import("@/lib/pdfTextExtraction.client");
-      const extracted=await extractLocalPdfText(data);
+      const extracted=await extractTextInBrowser(data);
       await save(extracted);
     }catch(e){
       toast.error(e instanceof Error?e.message:"Erro na extração do PDF.");

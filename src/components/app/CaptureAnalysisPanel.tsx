@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BrainCircuit, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { BrainCircuit, CheckCircle2, ListChecks, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  analyzeTextCapture,approveCapturePerson,getCaptureAnalysis,searchExistingCapturePeople,
+  analyzeTextCapture,approveCapturePerson,extractCaptureTasks,approveCaptureTask,getCaptureAnalysis,searchExistingCapturePeople,
 } from "@/lib/captureIntelligence.functions";
 
 type Proposal=Awaited<ReturnType<typeof getCaptureAnalysis>>["people"][number];
@@ -87,6 +87,43 @@ function ReviewPerson({item,captureId,onApproved}:{
   </div>;
 }
 
+type TaskProposal=Awaited<ReturnType<typeof getCaptureAnalysis>>["tasks"][number];
+function ReviewTask({item,captureId,people,onDone}:{
+  item:TaskProposal;captureId:string;people:{id:string;name:string}[];onDone:()=>void;
+}) {
+  const t=item.task;
+  const guess=people.find(p=>t.person_name&&p.name.toLowerCase().includes(t.person_name.toLowerCase()));
+  const [title,setTitle]=useState(t.title);
+  const [due,setDue]=useState(t.due_date??"");
+  const [personId,setPersonId]=useState(guess?.id??"");
+  const create=useMutation({
+    mutationFn:()=>approveCaptureTask({data:{captureId,taskIndex:item.index,title:title.trim(),
+      dueDate:due||null,personId:personId||null}}),
+    onSuccess:()=>{toast.success("Tarefa criada em Tarefas.");onDone();},
+    onError:(e:Error)=>toast.error(e.message),
+  });
+  return <div className="space-y-2 rounded-lg border bg-card p-3">
+    <span className={"inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold "+(t.responsible==="cliente"?"bg-muted text-foreground":"bg-primary/15 text-primary")}>
+      {t.responsible==="cliente"?"Com o cliente":"Nossa equipe"}{t.person_name?` · ${t.person_name}`:""}
+    </span>
+    <p className="text-xs text-muted-foreground">Trecho da fonte: “{t.evidence}”</p>
+    {item.createdTaskId ? <p className="flex items-center gap-2 text-sm"><CheckCircle2 className="h-4 w-4 text-success"/>{t.title} — criada.</p> : <>
+      <Input aria-label="Título da tarefa" value={title} maxLength={200} onChange={e=>setTitle(e.target.value)}/>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Input aria-label="Prazo" type="date" value={due} onChange={e=>setDue(e.target.value)}/>
+        <select aria-label="Pessoa vinculada" className="rounded-md border bg-background p-2 text-sm" value={personId} onChange={e=>setPersonId(e.target.value)}>
+          <option value="">Sem pessoa vinculada</option>
+          {people.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+      <Button size="sm" disabled={create.isPending||title.trim().length<4} onClick={()=>create.mutate()}>
+        {create.isPending&&<Loader2 className="h-4 w-4 animate-spin"/>}
+        {t.responsible==="cliente"?"Criar tarefa (aguardando cliente)":"Criar tarefa"}
+      </Button>
+    </>}
+  </div>;
+}
+
 /** Review UI is intentionally opt-in: AI output is never treated as identity proof. */
 export function CaptureAnalysisPanel({captureId}:{captureId:string}) {
   const [expanded,setExpanded]=useState(false);
@@ -102,6 +139,11 @@ export function CaptureAnalysisPanel({captureId}:{captureId:string}) {
       await qc.invalidateQueries({queryKey:key});
       toast.success("Reunião analisada. Revise as pessoas e evidências antes de atualizar o CRM.");
     },
+    onError:(err:Error)=>toast.error(err.message),
+  });
+  const tasksMut=useMutation({
+    mutationFn:()=>extractCaptureTasks({data:{captureId}}),
+    onSuccess:async()=>{await qc.invalidateQueries({queryKey:key});},
     onError:(err:Error)=>toast.error(err.message),
   });
   return <div className="space-y-2">
@@ -133,6 +175,18 @@ export function CaptureAnalysisPanel({captureId}:{captureId:string}) {
           key={item.index} item={item} captureId={captureId}
           onApproved={()=>void qc.invalidateQueries({queryKey:key})}
         />)}
+        <div className="space-y-2 border-t pt-3">
+          <p className="flex items-center gap-2 text-sm font-semibold"><ListChecks className="h-4 w-4 text-primary"/>Tarefas combinadas na reunião</p>
+          {!details.data.analysis.tasksExtracted ? <>
+            <p className="text-xs text-muted-foreground">O SID procura próximos passos da nossa equipe e do cliente. Nada é criado sem a sua confirmação.</p>
+            <Button size="sm" variant="outline" disabled={tasksMut.isPending} onClick={()=>tasksMut.mutate()}>
+              {tasksMut.isPending&&<Loader2 className="h-4 w-4 animate-spin"/>}Identificar tarefas
+            </Button>
+          </> : !details.data.tasks.length ? <p className="text-xs text-muted-foreground">Nenhuma tarefa com evidência clara foi encontrada no texto.</p>
+          : details.data.tasks.map(item=><ReviewTask key={item.index} item={item} captureId={captureId}
+              people={details.data!.people.filter(p=>p.approvedPersonId).map(p=>({id:p.approvedPersonId!,name:p.person.name}))}
+              onDone={()=>{void qc.invalidateQueries({queryKey:key});void qc.invalidateQueries({queryKey:["tasks"]});}}/>)}
+        </div>
       </>}
     </div>}
   </div>;

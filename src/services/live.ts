@@ -239,10 +239,9 @@ export const liveAgenda = {
 
 export const liveCaptures = {
   async list() {
-    const owner_id = await uid();
+    // Banco compartilhado do time: RLS já limita ao que o usuário pode ler.
     return must(await supabase.from("captures")
       .select("id,owner_id,title,kind,status,source,received_at,storage_path,external_id,note,error,mime")
-      .eq("owner_id", owner_id)
       .order("received_at", { ascending: false }).limit(80));
   },
   async signedDownloadUrl(storagePath: string): Promise<string> {
@@ -258,7 +257,7 @@ export const liveCaptures = {
         .from("captures")
         .insert({
           owner_id,
-          visibility: "privado",
+          visibility: "equipe",
           source: "captura",
           kind: "nota",
           status: "revisar",
@@ -295,7 +294,7 @@ export const liveCaptures = {
         .from("captures")
         .insert({
           owner_id,
-          visibility: "privado",
+          visibility: "equipe",
           source: "captura",
           kind,
           status: "enviando",

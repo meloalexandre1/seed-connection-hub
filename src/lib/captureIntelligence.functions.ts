@@ -26,7 +26,7 @@ async function findIdentityMatches(db:Db, ownerId:string, proposed:ProposedPerso
     const idList=[...new Set((methods??[]).map(m=>m.person_id))];
     if(idList.length) {
       const {data:people,error:e}=await db.from("people").select("id,name")
-        .eq("owner_id",ownerId).in("id",idList);
+        .in("id",idList);
       if(e)throw new Error("Não foi possível comparar pessoas existentes.");
       for(const p of people??[]){
         const m=(methods??[]).find(x=>x.person_id===p.id);
@@ -37,7 +37,7 @@ async function findIdentityMatches(db:Db, ownerId:string, proposed:ProposedPerso
   const safeName=proposed.name.replace(/[%,_\\]/g,"").trim();
   if(safeName){
     const {data:people,error}=await db.from("people").select("id,name")
-      .eq("owner_id",ownerId).ilike("name",safeName).limit(25);
+      .ilike("name",safeName).limit(25);
     if(error)throw new Error("Não foi possível verificar nomes existentes.");
     for(const p of people??[]){
       if(normalizedIdentityName(p.name)===normalizedIdentityName(proposed.name)){
@@ -51,7 +51,7 @@ async function findIdentityMatches(db:Db, ownerId:string, proposed:ProposedPerso
 async function requireOwnTextCapture(db:Db,userId:string,captureId:string) {
   const {data,error}=await db.from("captures")
     .select("id,owner_id,title,note,kind,status")
-    .eq("id",captureId).eq("owner_id",userId).maybeSingle();
+    .eq("id",captureId).maybeSingle();
   if(error||!data)throw new Error("Captura não encontrada ou sem permissão de leitura.");
   if(!data.note?.trim())throw new Error("Esta captura ainda não tem transcrição ou texto. Envie um resumo ou transcreva o áudio primeiro.");
   if(data.note.length<40)throw new Error("Para analisar, escreva ao menos 40 caracteres.");
@@ -163,7 +163,7 @@ export const searchExistingCapturePeople=createServerFn({method:"POST"})
     const search=data.query.replace(/[\\%_,()]/g,"").trim();
     if(search.length<2)return [];
     const {data:people,error}=await db.from("people")
-      .select("id,name,company,role").eq("owner_id",context.userId)
+      .select("id,name,company,role")
       .ilike("name",`%${search}%`).limit(12);
     if(error)throw new Error("Falha ao procurar contatos.");
     return people??[];
@@ -180,7 +180,7 @@ export const approveCapturePerson=createServerFn({method:"POST"})
     if(!candidate)throw new Error("Esta pessoa não faz parte da análise.");
     if(data.personId) {
       const {data:existing,error:existingError}=await db.from("people")
-        .select("id").eq("id",data.personId).eq("owner_id",context.userId).maybeSingle();
+        .select("id").eq("id",data.personId).maybeSingle();
       if(existingError||!existing)
         throw new Error("A pessoa escolhida não está disponível na sua conta.");
     }
@@ -254,7 +254,7 @@ export const approveCaptureTask=createServerFn({method:"POST"})
     const {data:created,error}=await db.from("tasks").insert({
       owner_id:context.userId,assignee_id:context.userId,title,
       status:taskStatusFor(item.task.responsible),priority:item.task.priority,
-      due_date:data.dueDate,person_id:data.personId,source:"captura",visibility:"privado",
+      due_date:data.dueDate,person_id:data.personId,source:"captura",visibility:"equipe",
     }).select("id").single();
     if(error)throw new Error("Não foi possível criar a tarefa.");
     const {supabaseAdmin}=await import("@/integrations/supabase/client.server");

@@ -752,3 +752,539 @@ alter table public.people add column if not exists context text;
 alter table public.people add column if not exists needs text[] not null default '{}';
 alter table public.people add column if not exists skills text[] not null default '{}';
 alter table public.people add column if not exists next_action text;
+-- Additive, non-destructive private Web Push subscriptions.
+-- Each signed-in user controls only their own devices. The scheduled sender
+-- runs with a separate service-role secret and is never callable from browser.
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_success_at timestamptz,
+  constraint push_endpoint_known_provider check (
+    endpoint like 'https://%' and
+    split_part(split_part(endpoint, '://', 2), '/', 1)
+       in ('fcm.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com')
+  ),
+  constraint push_endpoint_length check (length(endpoint) between 40 and 2048),
+  constraint push_keys_length check (
+    length(p256dh) between 40 and 180 and length(auth) between 12 and 180
+  )
+);
+create index if not exists push_subscriptions_user_idx
+ on public.push_subscriptions(user_id) where enabled;
+
+alter table public.push_subscriptions enable row level security;
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='push_subscriptions' and policyname='push_device_select') then
+    create policy push_device_select on public.push_subscriptions
+      for select to authenticated using (user_id = (select auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='push_subscriptions' and policyname='push_device_insert') then
+    create policy push_device_insert on public.push_subscriptions
+      for insert to authenticated with check (user_id = (select auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='push_subscriptions' and policyname='push_device_update') then
+    create policy push_device_update on public.push_subscriptions
+      for update to authenticated using (user_id = (select auth.uid()))
+        with check (user_id = (select auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='push_subscriptions' and policyname='push_device_delete') then
+    create policy push_device_delete on public.push_subscriptions
+      for delete to authenticated using (user_id = (select auth.uid()));
+  end if;
+end $$;
+
+grant select,insert,update,delete on public.push_subscriptions to authenticated;
+
+-- Private idempotency ledger for the server-only dispatcher. RLS blocks
+-- authenticated and anonymous users; only service_role can access it.
+create table if not exists public.push_deliveries (
+  id bigint generated always as identity primary key,
+  subscription_id uuid not null references public.push_subscriptions(id) on delete cascade,
+  event_key text not null,
+  status text not null default 'reserved'
+    check (status in ('reserved','sent','failed')),
+  created_at timestamptz not null default now(),
+  sent_at timestamptz,
+  constraint push_delivery_dedup unique(subscription_id,event_key)
+);
+create index if not exists push_deliveries_created_idx
+  on public.push_deliveries(created_at);
+alter table public.push_deliveries enable row level security;
+revoke all on public.push_deliveries from public,anon,authenticated;
+grant all on public.push_deliveries to service_role;
+grant usage,select on sequence public.push_deliveries_id_seq to service_role;
+-- First, conservative AI review stage for meeting notes. Never auto-edit CRM.
+CREATE TABLE IF NOT EXISTS public.capture_analyses (
+  capture_id uuid PRIMARY KEY REFERENCES public.captures(id) ON DELETE CASCADE,
+  owner_id uuid NOT NULL REFERENCES auth.users(id),
+  summary text NOT NULL DEFAULT '',
+  proposals jsonb NOT NULL DEFAULT '{"people":[]}'::jsonb,
+  status text NOT NULL DEFAULT 'sugerido' CHECK (status IN ('sugerido','revisado')),
+  model_name text NOT NULL DEFAULT 'sid',
+  analyzed_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT capture_analyses_limit CHECK (pg_column_size(proposals) < 150000)
+);
+CREATE INDEX IF NOT EXISTS capture_analyses_owner_idx ON public.capture_analyses(owner_id,analyzed_at DESC);
+ALTER TABLE public.capture_analyses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.capture_analyses FROM public,anon,authenticated;
+GRANT SELECT ON public.capture_analyses TO authenticated;
+DO $$
+BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+  AND tablename='capture_analyses' AND policyname='capture_analyses_own_read') THEN
+   CREATE POLICY capture_analyses_own_read ON public.capture_analyses FOR SELECT
+   TO authenticated USING (
+     owner_id=(select auth.uid())
+     AND EXISTS(SELECT 1 FROM public.captures c WHERE c.id=capture_id AND c.owner_id=(select auth.uid()))
+   );
+ END IF;
+END $$;
+-- Proposal decisions are private and server-authoritative. A successful
+-- write is recorded for each person once (idempotent).
+CREATE TABLE IF NOT EXISTS public.capture_analysis_decisions (
+  capture_id uuid NOT NULL REFERENCES public.capture_analyses(capture_id) ON DELETE CASCADE,
+  person_index integer NOT NULL CHECK (person_index >= 0 AND person_index < 20),
+  person_id uuid NOT NULL REFERENCES public.people(id),
+  owner_id uuid NOT NULL REFERENCES auth.users(id),
+  reviewed_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY(capture_id,person_index)
+);
+ALTER TABLE public.capture_analysis_decisions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.capture_analysis_decisions FROM public,anon,authenticated;
+GRANT SELECT ON public.capture_analysis_decisions TO authenticated;
+DO $$
+BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+  AND tablename='capture_analysis_decisions' AND policyname='capture_analysis_decisions_own_read') THEN
+   CREATE POLICY capture_analysis_decisions_own_read ON public.capture_analysis_decisions FOR SELECT
+   TO authenticated USING (owner_id=(select auth.uid()));
+ END IF;
+END $$;
+
+-- Authenticated, per-person approval is atomic: no half-written CRM updates.
+-- This function validates the current user's ownership on every resource.
+CREATE OR REPLACE FUNCTION public.approve_capture_person(
+  p_capture_id uuid,
+  p_person_index integer,
+  p_existing_person_id uuid DEFAULT NULL
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_user uuid := (SELECT auth.uid());
+  v_result public.capture_analyses%ROWTYPE;
+  v_item jsonb;
+  v_fact jsonb;
+  v_person uuid;
+  v_name text;
+  v_kind text;
+  v_text text;
+  v_facts jsonb;
+  v_needs text[] := '{}'::text[];
+  v_skills text[] := '{}'::text[];
+  v_name_norm text;
+  v_email text;
+  v_phone text;
+BEGIN
+  IF v_user IS NULL THEN RAISE EXCEPTION 'Autenticação necessária'; END IF;
+  SELECT * INTO v_result FROM public.capture_analyses
+   WHERE capture_id=p_capture_id AND owner_id=v_user FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Análise não encontrada ou acesso negado'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.captures c WHERE c.id=p_capture_id AND c.owner_id=v_user) THEN
+    RAISE EXCEPTION 'Captura não pertence à sua conta';
+  END IF;
+  IF p_person_index < 0 OR p_person_index >= jsonb_array_length(v_result.proposals->'people') THEN
+    RAISE EXCEPTION 'Pessoa não consta da análise';
+  END IF;
+  SELECT person_id INTO v_person FROM public.capture_analysis_decisions
+    WHERE capture_id=p_capture_id AND person_index=p_person_index AND owner_id=v_user;
+  IF FOUND THEN RETURN v_person; END IF;
+  v_item := v_result.proposals->'people'->p_person_index;
+  v_name := btrim(v_item->>'name');
+  IF length(v_name)<3 OR length(v_name)>130 THEN
+    RAISE EXCEPTION 'Nome inválido na análise';
+  END IF;
+  v_email := lower(btrim(coalesce(v_item->>'email','')));
+  v_phone := regexp_replace(coalesce(v_item->>'phone',''),'[^0-9]','','g');
+  IF p_existing_person_id IS NOT NULL THEN
+    SELECT id INTO v_person FROM public.people
+      WHERE id=p_existing_person_id AND owner_id=v_user;
+    IF v_person IS NULL THEN RAISE EXCEPTION 'Pessoa selecionada não pertence à sua conta'; END IF;
+  ELSE
+    IF EXISTS (SELECT 1 FROM public.people WHERE owner_id=v_user
+       AND lower(btrim(name))=lower(v_name)) OR
+       EXISTS (SELECT 1 FROM public.contact_methods cm JOIN public.people p ON p.id=cm.person_id
+        WHERE p.owner_id=v_user AND
+        ((v_email<>'' AND cm.kind='email' AND cm.value_normalized=v_email)
+         OR (v_phone<>'' AND cm.kind IN ('phone','telefone')
+             AND regexp_replace(coalesce(cm.value_normalized,''),'[^0-9]','','g')=v_phone))) THEN
+      RAISE EXCEPTION 'Possível duplicata: selecione a pessoa existente antes de criar';
+    END IF;
+    INSERT INTO public.people(owner_id,name,company,role,source,visibility,context)
+      VALUES(v_user,v_name,nullif(v_item->>'organization',''),
+        nullif(v_item->>'role',''),'captura','privado',
+        'Identificado após revisão da captura '||p_capture_id::text)
+      RETURNING id INTO v_person;
+    IF v_email<>'' THEN
+      INSERT INTO public.contact_methods(person_id,kind,value_raw,value_normalized)
+        VALUES(v_person,'email',v_email,v_email);
+    END IF;
+    IF v_phone<>'' THEN
+      INSERT INTO public.contact_methods(person_id,kind,value_raw,value_normalized)
+        VALUES(v_person,'telefone',v_phone,v_phone);
+    END IF;
+  END IF;
+  v_facts := coalesce(v_item->'facts','[]'::jsonb);
+  FOR v_fact IN SELECT value FROM jsonb_array_elements(v_facts)
+  LOOP
+    v_kind := v_fact->>'kind';
+    v_text := btrim(v_fact->>'text');
+    IF v_kind NOT IN ('necessidade','habilidade','contexto','compromisso','oportunidade')
+       OR length(v_text)<5 OR length(v_text)>500 THEN CONTINUE; END IF;
+    IF NOT EXISTS(SELECT 1 FROM public.facts
+      WHERE person_id=v_person AND source_capture_id=p_capture_id AND kind=v_kind AND text=v_text) THEN
+      INSERT INTO public.facts(person_id,kind,text,is_inference,confidence,source,
+        source_capture_id,status,reviewed_by,reviewed_at,author_id)
+      VALUES(v_person,v_kind,v_text,false,
+        (v_fact->>'confidence')::numeric,'captura',p_capture_id,'aprovado',
+        v_user,now(),v_user);
+    END IF;
+    IF v_kind='necessidade' THEN v_needs:=array_append(v_needs,v_text); END IF;
+    IF v_kind='habilidade' THEN v_skills:=array_append(v_skills,v_text); END IF;
+  END LOOP;
+  UPDATE public.people SET
+    needs=(SELECT coalesce(array_agg(DISTINCT x),'{}'::text[]) FROM unnest(needs||v_needs) x),
+    skills=(SELECT coalesce(array_agg(DISTINCT x),'{}'::text[]) FROM unnest(skills||v_skills) x),
+    updated_at=now()
+    WHERE id=v_person AND owner_id=v_user;
+  IF NOT EXISTS(SELECT 1 FROM public.interactions
+    WHERE person_id=v_person AND source_capture_id=p_capture_id) THEN
+    INSERT INTO public.interactions(person_id,kind,summary,confidence,source,
+      source_capture_id,status,reviewed_by,reviewed_at,author_id)
+    VALUES(v_person,'reuniao',left(v_result.summary,1600),0.9,'captura',
+      p_capture_id,'aprovado',v_user,now(),v_user);
+  END IF;
+  INSERT INTO public.capture_analysis_decisions(capture_id,person_index,person_id,owner_id)
+  VALUES(p_capture_id,p_person_index,v_person,v_user);
+  IF (SELECT count(*) FROM public.capture_analysis_decisions
+      WHERE capture_id=p_capture_id)=jsonb_array_length(v_result.proposals->'people') THEN
+    UPDATE public.capture_analyses SET status='revisado',updated_at=now()
+      WHERE capture_id=p_capture_id;
+  END IF;
+  RETURN v_person;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.approve_capture_person(uuid,integer,uuid)
+ FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.approve_capture_person(uuid,integer,uuid)
+ TO authenticated;
+-- Seed Connection: align evidence-backed AI categories with CRM database.
+-- Additive constraint expansion; preserves every existing fact and user record.
+BEGIN;
+ALTER TABLE public.facts DROP CONSTRAINT IF EXISTS facts_kind_check;
+ALTER TABLE public.facts ADD CONSTRAINT facts_kind_check
+  CHECK (kind = ANY (ARRAY[
+    'necessidade','habilidade','recurso','outro',
+    'contexto','compromisso','oportunidade'
+  ]::text[]));
+COMMIT;
+-- Seed Connection: prevent stale AI reviews and cap abuse of costly endpoints.
+-- Additive-only schema, no data deletion.
+ALTER TABLE public.capture_analyses
+  ADD COLUMN IF NOT EXISTS source_sha256 text;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conrelid = 'public.capture_analyses'::regclass
+                   AND conname='capture_analyses_source_hash_check') THEN
+    ALTER TABLE public.capture_analyses
+      ADD CONSTRAINT capture_analyses_source_hash_check
+      CHECK (source_sha256 IS NULL OR source_sha256 ~ '^[a-f0-9]{64}$');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.ai_request_limits (
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  operation text NOT NULL CHECK (operation IN ('sid_chat', 'meeting_analysis')),
+  window_start timestamptz NOT NULL,
+  requests integer NOT NULL DEFAULT 0 CHECK (requests >= 0),
+  PRIMARY KEY (user_id, operation, window_start)
+);
+ALTER TABLE public.ai_request_limits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.ai_request_limits FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_request_limits TO service_role;
+
+CREATE OR REPLACE FUNCTION public.claim_ai_request(
+  p_user_id uuid, p_operation text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_window timestamptz := date_trunc('minute', now());
+  v_max int;
+  v_requests int;
+BEGIN
+  IF p_user_id IS NULL OR NOT EXISTS (SELECT 1 FROM auth.users WHERE id=p_user_id) THEN
+    RETURN false;
+  END IF;
+  IF p_operation='sid_chat' THEN v_max := 20;
+  ELSIF p_operation='meeting_analysis' THEN v_max := 3;
+  ELSE RETURN false;
+  END IF;
+
+  INSERT INTO public.ai_request_limits(user_id, operation, window_start, requests)
+  VALUES(p_user_id,p_operation,v_window,1)
+  ON CONFLICT (user_id,operation,window_start)
+  DO UPDATE SET requests=public.ai_request_limits.requests+1
+    WHERE public.ai_request_limits.requests < v_max
+  RETURNING requests INTO v_requests;
+  RETURN v_requests IS NOT NULL;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.claim_ai_request(uuid,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_ai_request(uuid,text) TO service_role;
+-- Hard-stop stale AI findings at the database boundary, including direct RPC calls.
+-- The insert trigger stores a SHA-256 of the original note; the decision trigger
+-- rejects approval if the note was edited after the analysis was generated.
+CREATE OR REPLACE FUNCTION private.capture_analysis_source_fingerprint()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=public, private, extensions, pg_temp
+AS $$
+DECLARE v_note text;
+BEGIN
+  SELECT c.note INTO v_note FROM public.captures c
+    WHERE c.id=NEW.capture_id AND c.owner_id=NEW.owner_id;
+  IF v_note IS NULL THEN
+    RAISE EXCEPTION 'Source capture missing for meeting analysis';
+  END IF;
+  NEW.source_sha256 := encode(extensions.digest(convert_to(v_note,'UTF8'),'sha256'),'hex');
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION private.reject_stale_capture_decision()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=public, private, extensions, pg_temp
+AS $$
+DECLARE v_expected text;
+DECLARE v_now text;
+BEGIN
+  SELECT ca.source_sha256,
+         encode(extensions.digest(convert_to(c.note,'UTF8'),'sha256'),'hex')
+    INTO v_expected,v_now
+  FROM public.capture_analyses ca
+  JOIN public.captures c ON c.id=ca.capture_id AND c.owner_id=ca.owner_id
+  WHERE ca.capture_id=NEW.capture_id AND ca.owner_id=NEW.owner_id;
+  IF v_expected IS NULL OR v_now IS NULL OR v_expected<>v_now THEN
+    RAISE EXCEPTION 'O texto original da reunião mudou; esta análise deve ser refeita';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.capture_analysis_source_fingerprint() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION private.reject_stale_capture_decision() FROM PUBLIC,anon,authenticated;
+
+DO $$
+BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='capture_analysis_fingerprint_insert'
+    AND tgrelid='public.capture_analyses'::regclass) THEN
+  CREATE TRIGGER capture_analysis_fingerprint_insert
+    BEFORE INSERT ON public.capture_analyses FOR EACH ROW
+    EXECUTE FUNCTION private.capture_analysis_source_fingerprint();
+ END IF;
+ IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='capture_decision_source_guard'
+    AND tgrelid='public.capture_analysis_decisions'::regclass) THEN
+  CREATE TRIGGER capture_decision_source_guard
+    BEFORE INSERT ON public.capture_analysis_decisions FOR EACH ROW
+    EXECUTE FUNCTION private.reject_stale_capture_decision();
+ END IF;
+END $$;
+-- Prevent a race where a capture is edited during the LLM response.
+-- The server must present the hash of the exact text it sent to the model.
+-- The database compares it with the current capture immediately on INSERT.
+CREATE OR REPLACE FUNCTION private.capture_analysis_source_fingerprint()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=public, private, extensions, pg_temp
+AS $$
+DECLARE v_current_hash text;
+BEGIN
+  SELECT encode(extensions.digest(convert_to(c.note,'UTF8'),'sha256'),'hex')
+    INTO v_current_hash
+    FROM public.captures c
+    WHERE c.id=NEW.capture_id AND c.owner_id=NEW.owner_id;
+  IF v_current_hash IS NULL THEN
+    RAISE EXCEPTION 'Captura de origem não encontrada';
+  END IF;
+  IF NEW.source_sha256 IS NULL OR NEW.source_sha256<>v_current_hash THEN
+    RAISE EXCEPTION 'A anotação foi modificada durante a análise; solicite uma nova análise';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION private.capture_analysis_source_fingerprint() FROM PUBLIC,anon,authenticated;
+-- 0015 · Banco compartilhado do time.
+-- Decisão do dono (out/2026): pessoas, capturas e conversas SID são um banco
+-- único do time — o que um usuário cadastra aparece para todos os demais.
+-- 'privado' continua existindo como exceção consciente (opt-out), não como padrão.
+
+-- 1) Novos registros nascem visíveis para a equipe.
+alter table public.people alter column visibility set default 'equipe';
+alter table public.captures alter column visibility set default 'equipe';
+alter table public.sid_conversations alter column visibility set default 'equipe';
+
+-- 2) Registros existentes passam a ser da equipe (pedido explícito do dono).
+update public.people set visibility = 'equipe' where visibility = 'privado';
+update public.captures set visibility = 'equipe' where visibility = 'privado';
+update public.sid_conversations set visibility = 'equipe' where visibility = 'privado';
+
+-- 3) Análises de captura: qualquer membro que consegue ler a captura
+--    consegue ler a análise e as decisões de revisão correspondentes.
+drop policy if exists capture_analyses_own_read on public.capture_analyses;
+create policy capture_analyses_read on public.capture_analyses for select
+to authenticated using (
+  exists (select 1 from public.captures c
+          where c.id = capture_id
+            and private.can_read(c.owner_id, c.visibility, c.project_id))
+);
+
+drop policy if exists capture_analysis_decisions_own_read on public.capture_analysis_decisions;
+create policy capture_analysis_decisions_read on public.capture_analysis_decisions for select
+to authenticated using (
+  exists (select 1 from public.capture_analyses a
+          join public.captures c on c.id = a.capture_id
+          where a.capture_id = capture_analysis_decisions.capture_id
+            and private.can_read(c.owner_id, c.visibility, c.project_id))
+);
+
+-- 4) Aprovação de pessoa da análise passa a operar sobre o banco do time:
+--    pessoas criadas nascem 'equipe', vínculo com ficha existente aceita
+--    qualquer pessoa que o revisor consegue ler, e a checagem de duplicata
+--    olha o cadastro inteiro (evita duplicar pessoas entre usuários).
+create or replace function public.approve_capture_person(
+  p_capture_id uuid,
+  p_person_index integer,
+  p_existing_person_id uuid default null
+) returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_user uuid := (select auth.uid());
+  v_result public.capture_analyses%rowtype;
+  v_item jsonb;
+  v_fact jsonb;
+  v_person uuid;
+  v_name text;
+  v_kind text;
+  v_text text;
+  v_facts jsonb;
+  v_needs text[] := '{}'::text[];
+  v_skills text[] := '{}'::text[];
+  v_email text;
+  v_phone text;
+begin
+  if v_user is null then raise exception 'Autenticação necessária'; end if;
+  select * into v_result from public.capture_analyses
+   where capture_id = p_capture_id and owner_id = v_user for update;
+  if not found then raise exception 'Análise não encontrada ou acesso negado'; end if;
+  if not exists (select 1 from public.captures c
+                 where c.id = p_capture_id
+                   and private.can_read(c.owner_id, c.visibility, c.project_id)) then
+    raise exception 'Captura não disponível para a sua conta';
+  end if;
+  if p_person_index < 0 or p_person_index >= jsonb_array_length(v_result.proposals->'people') then
+    raise exception 'Pessoa não consta da análise';
+  end if;
+  select person_id into v_person from public.capture_analysis_decisions
+   where capture_id = p_capture_id and person_index = p_person_index and owner_id = v_user;
+  if found then return v_person; end if;
+  v_item := v_result.proposals->'people'->p_person_index;
+  v_name := btrim(v_item->>'name');
+  if length(v_name) < 3 or length(v_name) > 130 then
+    raise exception 'Nome inválido na análise';
+  end if;
+  v_email := lower(btrim(coalesce(v_item->>'email','')));
+  v_phone := regexp_replace(coalesce(v_item->>'phone',''),'[^0-9]','','g');
+  if p_existing_person_id is not null then
+    select id into v_person from public.people
+     where id = p_existing_person_id
+       and private.can_read(owner_id, visibility, project_id);
+    if v_person is null then raise exception 'Pessoa selecionada não está disponível'; end if;
+  else
+    if exists (select 1 from public.people where lower(btrim(name)) = lower(v_name))
+       or exists (select 1 from public.contact_methods cm
+                  join public.people p on p.id = cm.person_id
+                  where (v_email <> '' and cm.kind = 'email' and cm.value_normalized = v_email)
+                     or (v_phone <> '' and cm.kind in ('phone','telefone')
+                         and regexp_replace(coalesce(cm.value_normalized,''),'[^0-9]','','g') = v_phone)) then
+      raise exception 'Possível duplicata: selecione a pessoa existente antes de criar';
+    end if;
+    insert into public.people(owner_id, name, company, role, source, visibility, context)
+      values (v_user, v_name, nullif(v_item->>'organization',''),
+              nullif(v_item->>'role',''), 'captura', 'equipe',
+              'Identificado após revisão da captura '||p_capture_id::text)
+      returning id into v_person;
+    if v_email <> '' then
+      insert into public.contact_methods(person_id, kind, value_raw, value_normalized)
+        values (v_person, 'email', v_email, v_email);
+    end if;
+    if v_phone <> '' then
+      insert into public.contact_methods(person_id, kind, value_raw, value_normalized)
+        values (v_person, 'telefone', v_phone, v_phone);
+    end if;
+  end if;
+  v_facts := coalesce(v_item->'facts','[]'::jsonb);
+  for v_fact in select value from jsonb_array_elements(v_facts)
+  loop
+    v_kind := v_fact->>'kind';
+    v_text := btrim(v_fact->>'text');
+    if v_kind not in ('necessidade','habilidade','contexto','compromisso','oportunidade')
+       or length(v_text) < 5 or length(v_text) > 500 then continue; end if;
+    if not exists (select 1 from public.facts
+      where person_id = v_person and source_capture_id = p_capture_id and kind = v_kind and text = v_text) then
+      insert into public.facts(person_id, kind, text, is_inference, confidence, source,
+        source_capture_id, status, reviewed_by, reviewed_at, author_id)
+      values (v_person, v_kind, v_text, false,
+        (v_fact->>'confidence')::numeric, 'captura', p_capture_id, 'aprovado',
+        v_user, now(), v_user);
+    end if;
+    if v_kind = 'necessidade' then v_needs := array_append(v_needs, v_text); end if;
+    if v_kind = 'habilidade' then v_skills := array_append(v_skills, v_text); end if;
+  end loop;
+  update public.people set
+    needs = (select coalesce(array_agg(distinct x),'{}'::text[]) from unnest(needs||v_needs) x),
+    skills = (select coalesce(array_agg(distinct x),'{}'::text[]) from unnest(skills||v_skills) x),
+    updated_at = now()
+    where id = v_person;
+  if not exists (select 1 from public.interactions
+    where person_id = v_person and source_capture_id = p_capture_id) then
+    insert into public.interactions(person_id, kind, summary, confidence, source,
+      source_capture_id, status, reviewed_by, reviewed_at, author_id)
+    values (v_person, 'reuniao', left(v_result.summary,1600), 0.9, 'captura',
+      p_capture_id, 'aprovado', v_user, now(), v_user);
+  end if;
+  insert into public.capture_analysis_decisions(capture_id, person_index, person_id, owner_id)
+  values (p_capture_id, p_person_index, v_person, v_user);
+  if (select count(*) from public.capture_analysis_decisions
+      where capture_id = p_capture_id) = jsonb_array_length(v_result.proposals->'people') then
+    update public.capture_analyses set status = 'revisado', updated_at = now()
+      where capture_id = p_capture_id;
+  end if;
+  return v_person;
+end;
+$$;
+revoke all on function public.approve_capture_person(uuid, integer, uuid) from public, anon;
+grant execute on function public.approve_capture_person(uuid, integer, uuid) to authenticated;

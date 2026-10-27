@@ -113,6 +113,30 @@ export const livePeople = {
   },
 };
 
+export const liveNetwork = {
+  async list() {
+    // Paginate instead of silently dropping contacts beyond the Data API row limit.
+    const readPeople = async () => {
+      const rows: PersonRow[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const page = must(await supabase.from("people").select("*").order("name").order("id").range(offset, offset + 499));
+        rows.push(...page);
+        if (page.length < 500) return rows;
+      }
+    };
+    const readRelationships = async () => {
+      const rows: Database["public"]["Tables"]["relationships"]["Row"][] = [];
+      for (let offset = 0; ; offset += 500) {
+        const page = must(await supabase.from("relationships").select("*").neq("status", "rejeitado").order("id").range(offset, offset + 499));
+        rows.push(...page);
+        if (page.length < 500) return rows;
+      }
+    };
+    const [people, relationships] = await Promise.all([readPeople(), readRelationships()]);
+    return { people, relationships };
+  },
+};
+
 export const liveInteractions = {
   async listByPerson(personId: string) {
     return must(

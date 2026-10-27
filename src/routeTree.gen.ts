@@ -29,6 +29,7 @@ import { Route as ApiPushDispatchRouteImport } from './routes/api/push/dispatch'
 import { Route as ApiOauthDriveReturnRouteImport } from './routes/api/oauth/drive/return'
 import { Route as ApiOauthGmailReturnRouteImport } from './routes/api/oauth/gmail/return'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
+import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push/dispatch'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -133,6 +134,11 @@ const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
   path: '/api/oauth/google/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPushDispatchRoute = ApiPublicPushDispatchRouteImport.update({
+  id: '/api/public/push/dispatch',
+  path: '/api/public/push/dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/api/oauth/drive/return': typeof ApiOauthDriveReturnRoute
   '/api/oauth/gmail/return': typeof ApiOauthGmailReturnRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/api/oauth/drive/return': typeof ApiOauthDriveReturnRoute
   '/api/oauth/gmail/return': typeof ApiOauthGmailReturnRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/api/oauth/drive/return': typeof ApiOauthDriveReturnRoute
   '/api/oauth/gmail/return': typeof ApiOauthGmailReturnRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/api/oauth/drive/return'
     | '/api/oauth/gmail/return'
     | '/api/oauth/google/return'
+    | '/api/public/push/dispatch'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/api/oauth/drive/return'
     | '/api/oauth/gmail/return'
     | '/api/oauth/google/return'
+    | '/api/public/push/dispatch'
   id:
     | '__root__'
     | '/_authenticated'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/api/oauth/drive/return'
     | '/api/oauth/gmail/return'
     | '/api/oauth/google/return'
+    | '/api/public/push/dispatch'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,6 +285,7 @@ export interface RootRouteChildren {
   ApiOauthDriveReturnRoute: typeof ApiOauthDriveReturnRoute
   ApiOauthGmailReturnRoute: typeof ApiOauthGmailReturnRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
+  ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -417,6 +430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOauthGoogleReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/push/dispatch': {
+      id: '/api/public/push/dispatch'
+      path: '/api/public/push/dispatch'
+      fullPath: '/api/public/push/dispatch'
+      preLoaderRoute: typeof ApiPublicPushDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -464,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOauthDriveReturnRoute: ApiOauthDriveReturnRoute,
   ApiOauthGmailReturnRoute: ApiOauthGmailReturnRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
+  ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

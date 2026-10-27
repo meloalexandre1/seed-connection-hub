@@ -123,7 +123,7 @@ export const askSid = createServerFn({ method: "POST" })
     if (!conversationId) {
       const conv = await supabase
         .from("sid_conversations")
-        .insert({ owner_id: userId, title: data.question.slice(0, 60), visibility: "privado" })
+        .insert({ owner_id: userId, title: data.question.slice(0, 60), visibility: "equipe" })
         .select("id")
         .single();
       if (conv.error) throw new Error(conv.error.message);

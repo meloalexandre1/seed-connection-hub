@@ -16,5 +16,6 @@
 - Never store real data in localStorage and never ship privileged keys to the browser. Why: privacy/LGPD.
 - Demo actions must show an honest "not saved" notice, never a fake success. Why: no fake integrations.
 - App chrome (sidebar desktop, bottom nav mobile) lives in `src/components/app/AppShell.tsx`, mounted in `__root.tsx`.
+- The network map reads paginated RLS-scoped people and relationships through liveNetwork; inferred edges use only matching existing company or need/skill fields and stay unsaved suggestions. Why: never present possible connections as established relationships.
 - Supabase schema source of truth is `docs/supabase/migrations/NNNN_*.sql` (idempotent); `schema.sql` is their concatenation and must be regenerated, never hand-edited. Why: reviewable, re-runnable migrations.
 - Security-definer helpers live only in the unexposed `private` schema with empty search_path; every public table has explicit grants and RLS. Why: no generic authenticated access.

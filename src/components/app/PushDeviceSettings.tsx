@@ -33,11 +33,13 @@ export function PushDeviceSettings(){
     try {
       if(!supported)throw new Error("Este navegador não suporta Web Push neste modo. Use o navegador atualizado.");
       if(iosNeedsInstall)throw new Error("No iPhone, abra no Safari, toque Compartilhar → Adicionar à Tela de Início e abra o Seed pelo ícone criado.");
-      const {publicKey,ready}=await pushSetup();
+      // Important for iOS: request permission immediately from the tap event.
+      // An awaited network operation before this call may lose user activation.
+      const {publicKey,ready}=setup.data ?? {publicKey:"",ready:false};
       if(!ready||!publicKey)throw new Error("A chave pública de notificações ainda não foi configurada pelo administrador.");
-      const reg=await navigator.serviceWorker.register("/sw.js",{scope:"/"});
       const permission=await Notification.requestPermission();
       if(permission!=="granted")throw new Error("Permissão de notificações negada. Habilite-a nas configurações do celular.");
+      const reg=await navigator.serviceWorker.register("/sw.js",{scope:"/"});
       let sub=await reg.pushManager.getSubscription();
       if(!sub)sub=await reg.pushManager.subscribe({
         userVisibleOnly:true,applicationServerKey:toUint8Array(publicKey) as BufferSource,
